@@ -43,6 +43,34 @@ ollama pull qwen2.5        # baixa o modelo (~4,7 GB, so na primeira vez)
 ./mvnw spring-boot:run
 ```
 
+### No celular (Android e iOS)
+
+A aplicacao e um **PWA**: da para instalar na tela inicial e usar como um app,
+com icone proprio e sem a barra do navegador.
+
+1. Suba a aplicacao no computador (`./iniciar.sh`). O script imprime o endereco
+   da maquina na rede local, algo como `http://192.168.0.10:8080`.
+2. No celular, **na mesma rede Wi-Fi**, abra esse endereco no navegador.
+3. Instale: no Android, menu do Chrome > *Instalar aplicativo*. No iOS, botao de
+   compartilhar do Safari > *Adicionar a Tela de Inicio*.
+
+O que isso e e o que nao e: o celular vira o **cliente**; quem processa continua
+sendo o computador. O aparelho precisa estar na mesma rede e o computador
+ligado, porque nenhum celular roda um modelo de linguagem de 4,7 GB. Para usar
+de qualquer lugar, a aplicacao precisaria estar hospedada num servidor.
+
+O ditado por voz depende da Web Speech API: funciona no Chrome do Android e nao
+funciona no Safari do iOS, onde o campo de texto continua disponivel.
+
+### Gerar o zip para distribuir
+
+```bash
+./empacotar.sh
+```
+
+Produz `dist/orcamento-ia.zip` (~96 KB) sem build, sem dados e sem historico do
+git. Quem receber extrai e roda `./iniciar.sh` — o orcamento comeca zerado.
+
 ### Usando a OpenAI no lugar do modelo local
 
 ```bash
