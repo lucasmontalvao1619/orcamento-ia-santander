@@ -56,6 +56,36 @@ async function lerErro(resposta) {
     }
 }
 
+// Botao de lixeira das tabelas. A confirmacao evita apagar por engano num
+// clique so, ja que nao existe desfazer.
+function criarBotaoApagar(rotulo, aoConfirmar) {
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'apagar';
+    botao.title = `Apagar ${rotulo}`;
+    botao.setAttribute('aria-label', `Apagar ${rotulo}`);
+    botao.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+        + ' stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0'
+        + ' 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6M10 11v6M14 11v6"/></svg>';
+    botao.addEventListener('click', async () => {
+        if (!confirm(`Apagar ${rotulo}?`)) return;
+        botao.disabled = true;
+        try {
+            await aoConfirmar();
+        } catch (e) {
+            notificar(e.message || 'Não foi possível apagar.', 'erro');
+            botao.disabled = false;
+        }
+    });
+    return botao;
+}
+
+async function apagar(url, mensagem) {
+    const resposta = await fetch(url, { method: 'DELETE' });
+    if (!resposta.ok) throw new Error(await lerErro(resposta));
+    notificar(mensagem, 'ok');
+}
+
 /* ------------------------------------------------------------------ conversa */
 
 function limparConversaVazia() {
@@ -143,8 +173,14 @@ async function carregarSobre() {
         .join('')
         .slice(0, 2)
         .toUpperCase();
-    el('autor-github').href = sobre.github;
-    el('autor-site').href = sobre.site;
+    // Link so aparece se houver endereco: perfil em branco fica escondido em
+    // vez de virar um link quebrado.
+    [['autor-github', sobre.github], ['autor-linkedin', sobre.linkedin],
+     ['autor-instagram', sobre.instagram], ['autor-site', sobre.site]]
+        .forEach(([id, url]) => {
+            const link = el(id);
+            if (url) { link.href = url; link.hidden = false; } else { link.hidden = true; }
+        });
     document.title = `${sobre.projeto} — ${sobre.autor}`;
 }
 
@@ -222,7 +258,14 @@ function renderizarTabela(idDestaque = null) {
         tdValor.className = `direita celula-valor celula-valor--${receita ? 'receita' : 'despesa'}`;
         tdValor.textContent = (receita ? '+' : '−') + ' ' + MOEDA.format(Number(t.valor));
 
-        tr.append(tdDesc, tdCat, tdData, tdValor);
+        const tdAcao = document.createElement('td');
+        tdAcao.className = 'direita celula-acao';
+        tdAcao.appendChild(criarBotaoApagar(`"${t.descricao}"`, async () => {
+            await apagar(`/api/transacoes/${t.id}`, 'Transação apagada.');
+            await carregarTransacoes();
+        }));
+
+        tr.append(tdDesc, tdCat, tdData, tdValor, tdAcao);
         corpo.appendChild(tr);
     });
 }
@@ -653,7 +696,14 @@ async function carregarInvestimentos(idDestaque = null) {
         tdValor.className = `direita celula-valor celula-valor--${aporte ? 'aporte' : 'retirada'}`;
         tdValor.textContent = (aporte ? '+' : '−') + ' ' + MOEDA.format(Number(i.valor));
 
-        tr.append(tdDesc, tdTipo, tdData, tdValor);
+        const tdAcao = document.createElement('td');
+        tdAcao.className = 'direita celula-acao';
+        tdAcao.appendChild(criarBotaoApagar(`"${i.descricao}"`, async () => {
+            await apagar(`/api/investimentos/${i.id}`, 'Movimento apagado.');
+            await carregarInvestimentos();
+        }));
+
+        tr.append(tdDesc, tdTipo, tdData, tdValor, tdAcao);
         corpo.appendChild(tr);
     });
 }
@@ -718,3 +768,17 @@ if (!Reconhecimento) {
 Promise.all([carregarStatus(), carregarCategorias(), carregarConfiguracao(), carregarSobre()])
     .then(() => Promise.all([carregarTransacoes(), carregarInvestimentos()]))
     .catch(() => notificar('Falha ao carregar os dados iniciais.', 'erro'));
+
+/* ---------------------------------------------------------------- PWA ---- */
+
+// Registra o service worker para o app poder ser instalado na tela inicial do
+// celular. O registro falha em http:// fora de localhost — por isso o acesso
+// pelo celular usa o IP da maquina na rede local, que os navegadores tratam
+// como origem confiavel o suficiente para instalar.
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+            /* Sem service worker o app continua funcionando, so nao instala. */
+        });
+    });
+}

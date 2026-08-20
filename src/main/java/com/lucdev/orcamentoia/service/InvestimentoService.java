@@ -2,6 +2,7 @@ package com.lucdev.orcamentoia.service;
 
 import com.lucdev.orcamentoia.model.Investimento;
 import com.lucdev.orcamentoia.model.TipoInvestimento;
+import com.lucdev.orcamentoia.exception.RecursoNaoEncontradoException;
 import com.lucdev.orcamentoia.repository.InvestimentoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,15 @@ public class InvestimentoService {
             }
         }
         return repository.save(new Investimento(descricao, valor, tipo));
+    }
+
+    @Transactional
+    public Investimento apagar(Long id) {
+        Investimento investimento = repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Nao existe movimento de investimento com o id " + id + "."));
+        repository.delete(investimento);
+        return investimento;
     }
 
     @Transactional(readOnly = true)

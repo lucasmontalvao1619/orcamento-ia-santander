@@ -5,6 +5,8 @@ public record SobreResponse(
         String descricao,
         String autor,
         String github,
+        String linkedin,
+        String instagram,
         String site
 ) {
 }

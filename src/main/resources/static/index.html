@@ -2,13 +2,21 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="author" content="Lucas Montalvão">
     <meta name="description" content="Assistente financeiro pessoal com Spring Boot, Spring AI e Tool Calling.">
     <title>Orçamento IA — Assistente Financeiro por Voz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0a0c10">
+    <!-- iOS ignora o manifest para o icone e o modo tela cheia; precisa destas. -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Orçamento IA">
+    <link rel="apple-touch-icon" href="/icones/icone-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icones/icone-192.png">
     <link rel="stylesheet" href="/css/estilo.css">
 </head>
 <body>
@@ -203,6 +211,7 @@
                     <th scope="col">Categoria</th>
                     <th scope="col">Data</th>
                     <th scope="col" class="direita">Valor</th>
+                    <th scope="col"><span class="oculto">Ações</span></th>
                 </tr>
                 </thead>
                 <tbody id="corpo-tabela"></tbody>
@@ -268,6 +277,7 @@
                         <th scope="col">Movimento</th>
                         <th scope="col">Data</th>
                         <th scope="col" class="direita">Valor</th>
+                        <th scope="col"><span class="oculto">Ações</span></th>
                     </tr>
                     </thead>
                     <tbody id="corpo-investimentos"></tbody>
@@ -291,7 +301,16 @@
         </div>
     </div>
     <div class="rodape-links">
-        <a id="autor-github" href="#" target="_blank" rel="noopener">GitHub</a>
+        <a id="autor-github" class="rede" href="#" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 8.84 21.5c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.94.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+        </a>
+        <a id="autor-linkedin" class="rede" href="#" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.76-2.05C20.5 8.65 21 11 21 14.1V21h-4v-6.1c0-1.45-.03-3.32-2.02-3.32-2.03 0-2.34 1.58-2.34 3.21V21H9z"/></svg>
+        </a>
+        <a id="autor-instagram" class="rede" href="#" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <span class="rodape-divisor" aria-hidden="true"></span>
         <a id="autor-site" href="#" target="_blank" rel="noopener">Portfólio</a>
         <a href="/swagger-ui.html" target="_blank" rel="noopener">API</a>
     </div>

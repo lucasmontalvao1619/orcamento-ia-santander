@@ -6,6 +6,7 @@ import com.lucdev.orcamentoia.tool.InvestimentoTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
 
 import java.util.regex.Pattern;
@@ -21,6 +22,10 @@ public class AssistenteService {
     // cru. Este padrao detecta esse vazamento para nao mostra-lo na tela.
     private static final Pattern VAZAMENTO_TOOL_CALL = Pattern.compile(
             "\\{\\s*\"(name|function|tool|parameters|arguments)\"\\s*:", Pattern.CASE_INSENSITIVE);
+
+    // O app tem um orcamento so, entao ha uma conversa so. Quando existir a
+    // nocao de usuario, este id passa a vir de quem esta autenticado.
+    private static final String CONVERSA = "orcamento-unico";
 
     private static final String RESPOSTA_PADRAO =
             "Pronto, comando processado. Confira o saldo e a lista de transacoes.";
@@ -43,6 +48,7 @@ public class AssistenteService {
     public String processarComando(String textoUsuario) {
         String resposta = chatClient.prompt()
                 .user(textoUsuario)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, CONVERSA))
                 .tools(financasTools, investimentoTools, appTools)
                 .call()
                 .content();

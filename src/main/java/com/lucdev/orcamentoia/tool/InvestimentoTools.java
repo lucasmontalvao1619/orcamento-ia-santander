@@ -48,6 +48,31 @@ public class InvestimentoTools {
                 investimento.getValor(), investimento.getDescricao(), arredondar(saldo()));
     }
 
+    @Tool(description = "Lista os movimentos do porquinho com o id de cada um.")
+    public String listarMovimentosDoPorquinho() {
+        var movimentos = investimentoService.listarTodos();
+        if (movimentos.isEmpty()) {
+            return "Nenhum movimento registrado no porquinho.";
+        }
+        StringBuilder resultado = new StringBuilder("Movimentos do porquinho:\n");
+        for (Investimento i : movimentos) {
+            resultado.append(String.format(BR, "- [%d] %s | %s | R$ %.2f%n",
+                    i.getId(), i.getTipo(), i.getDescricao(), i.getValor()));
+        }
+        return resultado.toString();
+    }
+
+    @Tool(description = "Apaga um movimento do porquinho pelo id. Use quando o usuario pedir para "
+            + "desfazer, apagar ou corrigir um deposito ou retirada. Chame listarMovimentosDoPorquinho "
+            + "antes se nao souber o id.")
+    public String apagarMovimentoDoPorquinho(
+            @ToolParam(description = "Id do movimento a apagar") Long id) {
+
+        Investimento investimento = investimentoService.apagar(id);
+        return String.format(BR, "Movimento apagado: %s de R$ %.2f. Total agora: R$ %.2f.",
+                investimento.getTipo(), investimento.getValor(), arredondar(saldo()));
+    }
+
     @Tool(description = "Consulta quanto existe guardado no porquinho de investimento, incluindo "
             + "quanto ja rendeu de juros a 100% do CDI.")
     public String consultarPorquinho() {

@@ -1,6 +1,7 @@
 package com.lucdev.orcamentoia.service;
 
 import com.lucdev.orcamentoia.dto.NovaTransacaoRequest;
+import com.lucdev.orcamentoia.exception.RecursoNaoEncontradoException;
 import com.lucdev.orcamentoia.model.TipoTransacao;
 import com.lucdev.orcamentoia.model.Transacao;
 import com.lucdev.orcamentoia.repository.TransacaoRepository;
@@ -97,6 +98,29 @@ class TransacaoServiceTest {
         assertThat(transacaoSalva.getValue().getCategoria()).isEqualTo("alimentacao");
         assertThat(transacaoSalva.getValue().getTipo()).isEqualTo(TipoTransacao.DESPESA);
         assertThat(transacaoSalva.getValue().getDataHora()).isNotNull();
+    }
+
+    @Test
+    void apagarRemoveATransacaoEDevolveOQueFoiRemovido() {
+        Transacao existente = transacao("Almoco", "50.00", TipoTransacao.DESPESA);
+        when(repository.findById(7L)).thenReturn(java.util.Optional.of(existente));
+
+        Transacao removida = transacaoService.apagar(7L);
+
+        verify(repository).delete(existente);
+        assertThat(removida).isSameAs(existente);
+    }
+
+    // Apagar um id que nao existe tem de virar 404, nao 500.
+    @Test
+    void apagarIdInexistenteFalhaComRecursoNaoEncontrado() {
+        when(repository.findById(99L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> transacaoService.apagar(99L))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessageContaining("99");
+
+        verify(repository, never()).delete(any());
     }
 
     private Transacao transacao(String descricao, String valor, TipoTransacao tipo) {

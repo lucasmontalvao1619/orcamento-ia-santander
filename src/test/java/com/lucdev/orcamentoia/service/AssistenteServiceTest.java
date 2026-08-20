@@ -33,7 +33,9 @@ class AssistenteServiceTest {
 
     private AssistenteService comRespostaDoModelo(String resposta) {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-        when(chatClient.prompt().user(anyString()).tools(any(Object[].class)).call().content())
+        // A cadeia espelha a do service: prompt -> user -> advisors -> tools -> call.
+        when(chatClient.prompt().user(anyString()).advisors(any(java.util.function.Consumer.class))
+                .tools(any(Object[].class)).call().content())
                 .thenReturn(resposta);
         return new AssistenteService(chatClient, financasTools, investimentoTools, appTools);
     }

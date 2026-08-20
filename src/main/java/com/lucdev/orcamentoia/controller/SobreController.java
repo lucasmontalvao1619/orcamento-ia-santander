@@ -18,6 +18,8 @@ public class SobreController {
                 Autoria.DESCRICAO,
                 Autoria.AUTOR,
                 Autoria.GITHUB,
+                Autoria.LINKEDIN,
+                Autoria.INSTAGRAM,
                 Autoria.SITE));
     }
 }

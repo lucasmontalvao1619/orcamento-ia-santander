@@ -3,6 +3,7 @@ package com.lucdev.orcamentoia.service;
 import com.lucdev.orcamentoia.dto.NovaTransacaoRequest;
 import com.lucdev.orcamentoia.model.TipoTransacao;
 import com.lucdev.orcamentoia.model.Transacao;
+import com.lucdev.orcamentoia.exception.RecursoNaoEncontradoException;
 import com.lucdev.orcamentoia.repository.TransacaoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,41 @@ public class TransacaoService {
         }
         Transacao transacao = new Transacao(descricao, valor, categoria, tipo);
         return repository.save(transacao);
+    }
+
+    // Atualizacao parcial: campo nulo significa "mantem o que estava". Sem isso,
+    // corrigir so o valor exigiria reenviar descricao, categoria e tipo.
+    @Transactional
+    public Transacao atualizar(Long id, String descricao, BigDecimal valor, String categoria, TipoTransacao tipo) {
+        Transacao transacao = repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Nao existe transacao com o id " + id + "."));
+
+        if (valor != null) {
+            if (valor.signum() <= 0) {
+                throw new IllegalArgumentException("O valor da transacao deve ser positivo.");
+            }
+            transacao.setValor(valor);
+        }
+        if (descricao != null && !descricao.isBlank()) {
+            transacao.setDescricao(descricao);
+        }
+        if (categoria != null && !categoria.isBlank()) {
+            transacao.setCategoria(categoria);
+        }
+        if (tipo != null) {
+            transacao.setTipo(tipo);
+        }
+        return repository.save(transacao);
+    }
+
+    @Transactional
+    public Transacao apagar(Long id) {
+        Transacao transacao = repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Nao existe transacao com o id " + id + "."));
+        repository.delete(transacao);
+        return transacao;
     }
 
     @Transactional(readOnly = true)

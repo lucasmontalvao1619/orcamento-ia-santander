@@ -87,7 +87,35 @@ public class FinancasTools {
         return String.format(BR, "O total de despesas na categoria %s e de R$ %.2f.", categoria, total);
     }
 
-    @Tool(description = "Lista as ultimas transacoes registradas no orcamento.")
+    @Tool(description = "Corrige uma transacao ja registrada. Use quando o usuario disser que errou, "
+            + "quiser mudar o valor, a descricao, a categoria ou o tipo de um lancamento, ou disser algo "
+            + "como 'na verdade foram 60'. Informe apenas os campos que mudam; os demais ficam como estao. "
+            + "Se nao souber o id, chame listarTransacoes antes.")
+    public String atualizarTransacao(
+            @ToolParam(description = "Id da transacao a corrigir") Long id,
+            @ToolParam(required = false, description = "Novo valor em reais, se mudou") BigDecimal valor,
+            @ToolParam(required = false, description = "Nova descricao, se mudou") String descricao,
+            @ToolParam(required = false, description = "Nova categoria, se mudou") String categoria,
+            @ToolParam(required = false, description = "Novo tipo: RECEITA ou DESPESA, se mudou") TipoTransacao tipo) {
+
+        Transacao transacao = transacaoService.atualizar(id, descricao, valor, categoria, tipo);
+        return String.format(BR, "Transacao %d atualizada: %s de R$ %.2f na categoria %s (%s).",
+                transacao.getId(), transacao.getTipo(), transacao.getValor(),
+                transacao.getCategoria(), transacao.getDescricao());
+    }
+
+    @Tool(description = "Apaga uma transacao do orcamento pelo id. Use quando o usuario pedir para "
+            + "apagar, remover, excluir ou desfazer um lancamento. Se voce nao souber o id, chame "
+            + "listarTransacoes antes: a listagem mostra o id de cada uma entre colchetes.")
+    public String apagarTransacao(
+            @ToolParam(description = "Id da transacao a apagar, como aparece entre colchetes na listagem") Long id) {
+
+        Transacao transacao = transacaoService.apagar(id);
+        return String.format(BR, "Transacao apagada: %s de R$ %.2f na categoria %s.",
+                transacao.getTipo(), transacao.getValor(), transacao.getCategoria());
+    }
+
+    @Tool(description = "Lista as ultimas transacoes registradas no orcamento, com o id de cada uma.")
     public String listarTransacoes() {
         List<Transacao> transacoes = transacaoService.listarTodas();
         if (transacoes.isEmpty()) {
@@ -95,8 +123,8 @@ public class FinancasTools {
         }
         StringBuilder resultado = new StringBuilder("Transacoes registradas:\n");
         for (Transacao t : transacoes) {
-            resultado.append(String.format(BR, "- %s | %s | R$ %.2f | %s%n",
-                    t.getTipo(), t.getDescricao(), t.getValor(), t.getCategoria()));
+            resultado.append(String.format(BR, "- [%d] %s | %s | R$ %.2f | %s%n",
+                    t.getId(), t.getTipo(), t.getDescricao(), t.getValor(), t.getCategoria()));
         }
         return resultado.toString();
     }

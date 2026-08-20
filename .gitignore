@@ -30,3 +30,9 @@ secrets.properties
 *.pem
 *.p12
 *.key
+
+# Banco H2 em arquivo (dados locais do usuario)
+dados/
+
+# Pacote gerado por ./empacotar.sh
+dist/

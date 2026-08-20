@@ -9,6 +9,11 @@ public final class Autoria {
 
     public static final String AUTOR = "Lucas Montalvão";
     public static final String GITHUB = "https://github.com/lucasmontalvao1619";
+
+    // Vazio significa "nao mostrar": a interface esconde o link em vez de
+    // apontar para um endereco inventado.
+    public static final String LINKEDIN = "https://www.linkedin.com/in/lucas-mgoliveira/";
+    public static final String INSTAGRAM = "https://www.instagram.com/lukk.oliv/";
     public static final String SITE = "https://lucdevv.vercel.app";
     public static final String PROJETO = "Orçamento IA";
     public static final String DESCRICAO =

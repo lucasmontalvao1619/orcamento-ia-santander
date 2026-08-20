@@ -1,62 +1,49 @@
-# Orcamento IA - Assistente Financeiro por Voz
+# Orçamento IA — Assistente Financeiro por Voz
 
-Aplicacao de controle de financas pessoais construida com **Spring Boot** e **Spring AI**,
-com interface web propria. O usuario fala ou digita um comando em linguagem natural
-("gastei 50 reais com almoco"), a aplicacao interpreta a intencao com um modelo de
-linguagem e executa a acao real correspondente: registrar uma receita/despesa ou
-consultar saldo, gastos e transacoes.
+Controle de financas pessoais construido com **Spring Boot** e **Spring AI**, com
+interface web propria. O usuario fala ou digita um comando em linguagem natural
+("gastei 60 no uber"), a aplicacao interpreta a intencao com um modelo de
+linguagem e executa a acao real correspondente: registrar, corrigir, apagar ou
+consultar lancamentos.
 
-O modelo roda **localmente via Ollama**, sem chave de API e sem custo. A troca para
-a OpenAI e uma variavel de ambiente.
+O modelo roda **localmente**, sem chave de API e sem custo. A troca para a OpenAI
+e uma variavel de ambiente.
 
-## O que o projeto faz
-
-1. O usuario fala (ou digita) um comando na interface web.
-2. O audio vira texto — no navegador (Web Speech API) ou no servidor (Whisper).
-3. O texto vai ao modelo de linguagem atraves do `ChatClient`.
-4. O modelo decide, via **Tool Calling**, qual funcao da aplicacao executar.
-5. A funcao registra ou consulta transacoes no banco.
-6. Uma resposta em linguagem natural volta para a tela.
-
-Alem do assistente, a aplicacao funciona por completo sem IA nenhuma: lancamentos
-manuais, saldo, filtros, categorias e configuracao de salario.
-
-## Tecnologias utilizadas
-
-- Java 17
-- Spring Boot 3.5
-- Spring AI 1.1 (ChatClient, Tool Calling, transcricao de audio)
-- Ollama (modelo local) com OpenAI como provedor alternativo
-- Spring Data JPA + banco H2 (em memoria)
-- Bean Validation
-- SpringDoc / Swagger UI
-- Frontend em HTML, CSS e JavaScript puro (sem build step)
-- JUnit 5, Mockito e AssertJ
+---
 
 ## Como executar
 
-Pre-requisitos: **Java 17**, **Maven** e **Ollama**.
+### Opcao 1 — Docker (recomendado)
 
-### 1. Instalar e preparar o Ollama
+Requer apenas o **Docker** instalado e aberto. Nao precisa de Java, Maven nem Ollama.
+
+```bash
+./iniciar.sh          # macOS e Linux
+iniciar.bat           # Windows
+```
+
+O script sobe tres servicos: o modelo de IA, o download do modelo e a aplicacao.
+Na primeira execucao o modelo e baixado (~4,7 GB) e isso leva alguns minutos; nas
+seguintes ele ja esta no volume e a subida e rapida.
+
+Depois abra **http://localhost:8080**. Para encerrar, `./parar.sh`.
+
+Cada instalacao comeca com o **orcamento zerado**: o volume de dados nasce vazio,
+e a aplicacao pergunta o salario no primeiro acesso.
+
+### Opcao 2 — Local, sem Docker
+
+Requer **Java 17**, **Maven** e **Ollama**.
 
 ```bash
 brew install ollama        # macOS. Outras plataformas: https://ollama.com/download
 ollama serve               # deixa o servidor rodando
-ollama pull llama3.1       # baixa o modelo (~5 GB, so na primeira vez)
-```
+ollama pull qwen2.5        # baixa o modelo (~4,7 GB, so na primeira vez)
 
-### 2. Subir a aplicacao
-
-```bash
 ./mvnw spring-boot:run
 ```
 
-Abra **http://localhost:8080**. No primeiro acesso a aplicacao pergunta o seu
-salario (ou quanto voce tem disponivel) e usa esse valor como receita inicial.
-
-### Usando a OpenAI no lugar do Ollama
-
-O provedor e selecionavel sem alterar codigo:
+### Usando a OpenAI no lugar do modelo local
 
 ```bash
 export OPENAI_API_KEY="sua-chave-aqui"
@@ -66,85 +53,132 @@ AI_PROVIDER=openai ./mvnw spring-boot:run
 A chave sai de `platform.openai.com` e exige credito na conta — uma chave sem
 credito e criada normalmente mas falha em toda chamada com `insufficient_quota`.
 
-A **transcricao de audio no servidor** (Whisper) existe apenas na OpenAI e depende
-de `OPENAI_API_KEY` mesmo com o Ollama como provedor de chat. Sem ela, o ditado por
-voz e feito pelo proprio navegador, que nao consome credito nenhum.
+A **transcricao de audio no servidor** (Whisper) so existe na OpenAI e depende de
+`OPENAI_API_KEY` mesmo com o modelo local. Sem ela, o ditado por voz e feito pelo
+proprio navegador, que nao consome credito.
 
-## Interface web
+---
 
-A interface e servida pelo proprio Spring a partir de `src/main/resources/static/`
-— sem npm, sem build step. Ela oferece:
+## O que o assistente faz
 
-- **Tela de boas-vindas** no primeiro acesso, pedindo o salario inicial.
-- **Cartoes de resumo** com saldo, total de receitas e total de despesas.
-- **Assistente** com botao de microfone e campo de texto, mais comandos sugeridos.
-- **Lancamento manual** com cinco categorias fixas de despesa e atalhos para
-  registrar presente ou renda extra.
-- **Configuracoes** para alterar o salario a qualquer momento.
-- **Tabela de transacoes** com filtro por tipo.
+O modelo nao escreve no banco. Ele escolhe **qual funcao Java chamar e com quais
+argumentos** — isso e o **Tool Calling**. Quem executa e a aplicacao, passando
+pelas mesmas regras de negocio da API REST.
 
-O ditado de voz usa a **Web Speech API** do navegador (Chrome), o que mantem o
-fluxo de voz funcionando sem consumir credito de transcricao.
+Sao 13 ferramentas expostas ao modelo:
 
-## Categorias
+| Area | Ferramentas |
+|------|-------------|
+| Transacoes | registrar, atualizar, apagar, listar |
+| Consultas | saldo, gasto por categoria |
+| Salario | definir, consultar |
+| Porquinho | guardar, retirar, consultar, listar movimentos, apagar movimento |
+| App | recursos disponiveis, autor do projeto |
 
-Fixas, expostas pelo endpoint `/api/categorias` para que a interface nao mantenha
-uma copia propria da lista:
+Exemplos que funcionam:
 
-| Despesas | Receitas |
-|----------|----------|
-| Alimentacao, Transporte, Moradia, Lazer, Saude | Salario, Presente, Renda extra |
+```
+"Gastei 60 reais no uber"                 -> despesa em transporte (categoria inferida)
+"Recebi 500 de presente da minha avo"     -> receita em presente
+"Meu salario e 3000, todo dia 15"         -> configura o salario, sem somar duas vezes
+"Guarda 800 no porquinho para a viagem"   -> aporte no porquinho
+"Corrige a transacao 3 para 60 reais"     -> atualiza o lancamento
+"Quanto eu tenho guardado?"               -> total com rendimento
+"O que esse app faz?"                     -> lista os recursos reais
+```
 
-O campo `categoria` da transacao continua sendo texto livre, porque o assistente
-pode criar categorias novas ao registrar por voz.
+---
+
+## Recursos
+
+- **Onboarding** no primeiro acesso, perguntando o salario inicial.
+- **Lancamentos** por voz, texto ou formulario, com correcao e exclusao.
+- **Cinco categorias fixas de despesa** (alimentacao, transporte, moradia, lazer,
+  saude) e tres de receita (salario, presente, extra).
+- **Salario configuravel**, com o dia do mes em que cai.
+- **Porquinho de investimento**, separado do saldo, rendendo **100% do CDI**.
+- **Interface web** sem build step, servida pelo proprio Spring.
+
+O ditado de voz usa a **Web Speech API** do navegador (Chrome), mantendo o fluxo
+de voz sem consumir credito de transcricao.
+
+---
+
+## Decisoes de implementacao
+
+**O salario nao duplica no saldo.** A configuracao guarda o id da receita de
+salario; alterar o valor atualiza aquela transacao em vez de criar outra.
+
+**O porquinho e um controle a parte.** Guardar dinheiro nao reduz o saldo do
+orcamento: sao dois totais paralelos. O rendimento e calculado percorrendo os
+movimentos em ordem e corrigindo o saldo entre um e outro, entao o que rendeu
+tambem rende. Dias uteis (252/ano); feriados sao ignorados de proposito.
+
+**A validacao vale nos dois caminhos.** A entrada REST e a entrada da IA caem no
+mesmo metodo do service, entao a regra de valor positivo nao depende do `@Valid`
+do controller.
+
+**A aplicacao sobe sem chave de API.** As propriedades tem valor default, e a
+interface consulta `/api/assistente/status` para avisar antes de o usuario tentar
+um comando que so resultaria em erro.
+
+**A memoria de conversa fica desligada por padrao.** Ela faz "na verdade foram 60"
+funcionar, mas modelos locais menores, ao verem no historico respostas antigas no
+formato "registrado com sucesso", passam a **imitar esse texto em vez de chamar a
+ferramenta** — respondem que atualizaram sem que nada mude no banco. Foi medido:
+sem historico a ferramenta e chamada e o valor muda; com historico o modelo apenas
+descreve o que faria. Um erro silencioso desses e pior que a falta do recurso.
+Com um modelo maior, ligue com `ASSISTENTE_MEMORIA=true`.
+
+**A autoria tem fonte unica no backend** (`config/Autoria`) e chega a interface
+por `/api/sobre`, alem de alimentar a ferramenta que responde quem fez o projeto.
+
+---
 
 ## Endpoints
 
 | Metodo | Rota | Descricao |
 |--------|------|-----------|
-| GET | `/api/assistente/status` | Diz se o assistente esta configurado e qual o provedor |
+| GET | `/api/assistente/status` | Se o assistente esta utilizavel e qual o provedor |
 | POST | `/api/assistente/texto` | Processa um comando de texto |
 | POST | `/api/assistente/audio` | Processa um comando de voz (requer OpenAI) |
-| GET | `/api/configuracao` | Estado da configuracao inicial e salario atual |
-| PUT | `/api/configuracao/salario` | Define ou altera o salario |
-| GET | `/api/categorias` | Lista as categorias de despesa e de receita |
-| POST | `/api/transacoes` | Cria uma transacao manualmente |
+| GET | `/api/configuracao` | Estado da configuracao inicial e salario |
+| PUT | `/api/configuracao/salario` | Define ou altera o salario e o dia |
+| GET | `/api/categorias` | Categorias de despesa e de receita |
+| POST | `/api/transacoes` | Cria uma transacao |
+| PUT | `/api/transacoes/{id}` | Corrige uma transacao (campos opcionais) |
+| DELETE | `/api/transacoes/{id}` | Apaga uma transacao |
 | GET | `/api/transacoes` | Lista transacoes (filtro opcional por `tipo`) |
-| GET | `/api/transacoes/saldo` | Retorna o saldo atual |
+| GET | `/api/transacoes/saldo` | Saldo atual |
+| POST | `/api/investimentos` | Registra aporte ou retirada |
+| DELETE | `/api/investimentos/{id}` | Apaga um movimento |
+| GET | `/api/investimentos` | Lista os movimentos |
+| GET | `/api/investimentos/resumo` | Total, rendimento e taxa |
+| GET | `/api/sobre` | Autoria do projeto |
 
-## Decisoes de implementacao
+Documentacao interativa em `/swagger-ui.html`.
 
-- **O salario nao duplica no saldo.** A configuracao guarda o id da receita de
-  salario; alterar o valor atualiza aquela transacao em vez de criar outra.
-- **A validacao vale nos dois caminhos.** A entrada REST e a entrada da IA caem
-  no mesmo metodo do service, entao a regra de valor positivo nao depende do
-  `@Valid` do controller.
-- **A aplicacao sobe sem chave de API.** As propriedades tem valor default, e a
-  interface consulta `/api/assistente/status` para avisar antes de o usuario
-  tentar um comando que so resultaria em erro.
-- **Erros padronizados em ProblemDetail (RFC 7807),** incluindo as falhas do
-  provedor de IA e a indisponibilidade do modelo local.
-- **Locale fixo (pt-BR)** na formatacao monetaria das respostas do assistente,
-  para o texto nao mudar conforme a maquina que roda a aplicacao.
+---
 
 ## Contrato de erros
 
+Todas as falhas saem em [ProblemDetail (RFC 7807)](https://datatracker.ietf.org/doc/html/rfc7807).
+
 | Situacao | Status |
 |----------|--------|
-| Corpo invalido (Bean Validation) ou valor nao positivo | `400 Bad Request` |
-| Provedor de IA recusou a chamada (ex.: chave invalida) | `502 Bad Gateway` |
-| Provedor de IA temporariamente indisponivel | `503 Service Unavailable` |
-| Ollama nao esta rodando | `503 Service Unavailable` |
+| Corpo invalido ou valor nao positivo | `400 Bad Request` |
+| Id inexistente | `404 Not Found` |
+| Provedor de IA recusou a chamada | `502 Bad Gateway` |
+| Provedor de IA indisponivel | `503 Service Unavailable` |
+| Modelo local fora do ar | `503 Service Unavailable` |
 
-```json
-{
-  "type": "about:blank",
-  "title": "Modelo local indisponivel",
-  "status": 503,
-  "detail": "Nao foi possivel conectar ao modelo local. Verifique se o Ollama esta rodando (ollama serve).",
-  "instance": "/api/assistente/texto"
-}
-```
+---
+
+## Tecnologias
+
+Java 17 · Spring Boot 3.5 · Spring AI 1.1 · Ollama (OpenAI como alternativa) ·
+Spring Data JPA · H2 · Bean Validation · SpringDoc · Docker ·
+HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 
 ## Testes
 
@@ -152,45 +186,30 @@ pode criar categorias novas ao registrar por voz.
 ./mvnw test
 ```
 
-22 testes cobrindo saldo, validacao, configuracao de salario, as ferramentas de
-Tool Calling e o contrato HTTP. Os testes de service e de tools usam Mockito e
-nao dependem de rede, de chave de API nem do Ollama.
+Cobrem saldo, validacao, configuracao de salario, rendimento do porquinho,
+correcao e exclusao, as ferramentas de Tool Calling e o contrato HTTP. Nao
+dependem de rede, de chave de API nem do Ollama.
 
-## Estrutura do projeto
+---
+
+## Estrutura
 
 ```
-src/main/java/com/lucdev/orcamentoia/
-├── OrcamentoIaApplication.java
-├── config/
-│   └── ChatClientConfig.java          # ChatClient e system prompt
-├── controller/
-│   ├── AssistenteController.java      # Comandos de voz, texto e status
-│   ├── ConfiguracaoController.java    # Salario e categorias
-│   └── TransacaoController.java       # Endpoints REST de transacoes
-├── exception/
-│   └── ApiExceptionHandler.java       # Erros centralizados em ProblemDetail
-├── dto/
-├── model/
-│   ├── CategoriaDespesa.java          # As cinco categorias fixas
-│   ├── CategoriaReceita.java
-│   ├── Configuracao.java              # Salario configurado
-│   ├── TipoTransacao.java
-│   └── Transacao.java
-├── repository/
-├── service/
-│   ├── AssistenteService.java         # Orquestra o ChatClient com as tools
-│   ├── ConfiguracaoService.java       # Regras do salario
-│   ├── TranscricaoService.java        # Converte audio em texto
-│   └── TransacaoService.java          # Regras das transacoes
-└── tool/
-    └── FinancasTools.java             # Funcoes expostas para o Tool Calling
-
-src/main/resources/static/             # Interface web (sem build step)
-├── index.html
-├── css/estilo.css
-└── js/app.js
+├── Dockerfile / docker-compose.yml     # Execucao em container
+├── iniciar.sh / parar.sh / iniciar.bat # Atalhos de uso
+└── src/main/
+    ├── java/com/lucdev/orcamentoia/
+    │   ├── config/       # ChatClient, system prompt e autoria
+    │   ├── controller/   # Assistente, transacoes, investimentos, configuracao
+    │   ├── dto/
+    │   ├── exception/    # Erros centralizados em ProblemDetail
+    │   ├── model/
+    │   ├── repository/
+    │   ├── service/      # Regras de negocio
+    │   └── tool/         # Funcoes expostas ao Tool Calling
+    └── resources/static/ # Interface web (sem build step)
 ```
 
 ## Autor
 
-Lucas Montalvao — [github.com/lucasmontalvao1619](https://github.com/lucasmontalvao1619) — [lucdevv.vercel.app](https://lucdevv.vercel.app)
+**Lucas Montalvão** — [github.com/lucasmontalvao1619](https://github.com/lucasmontalvao1619) — [lucdevv.vercel.app](https://lucdevv.vercel.app)

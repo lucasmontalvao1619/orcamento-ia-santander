@@ -1,0 +1,58 @@
+# Sobe a aplicacao inteira com um comando: o modelo de IA, o download dele e a
+# API. Quem for usar precisa apenas do Docker instalado — nada de Java, Maven
+# ou Ollama na maquina.
+services:
+
+  # O modelo de linguagem, rodando localmente.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: orcamento-ollama
+    volumes:
+      # O modelo baixado fica no volume: o download de ~4,7 GB acontece uma vez
+      # so, e nao se repete a cada 'docker compose up'.
+      - modelos-ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+
+  # Servico de uma execucao so: baixa o modelo e encerra. A aplicacao espera
+  # ele terminar, para nunca subir com o assistente quebrado.
+  baixar-modelo:
+    image: ollama/ollama:latest
+    container_name: orcamento-baixar-modelo
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "echo 'Baixando o modelo de IA (~4,7 GB, apenas na primeira vez)...';
+       ollama pull qwen2.5 && echo 'Modelo pronto.'"
+    restart: "no"
+
+  # A API e a interface web.
+  app:
+    build: .
+    container_name: orcamento-app
+    depends_on:
+      baixar-modelo:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5
+    volumes:
+      # Os lancamentos ficam neste volume e sobrevivem ao restart. Como o volume
+      # nasce vazio, cada pessoa comeca com o orcamento zerado.
+      - dados-orcamento:/app/dados
+    restart: unless-stopped
+
+volumes:
+  modelos-ollama:
+  dados-orcamento:

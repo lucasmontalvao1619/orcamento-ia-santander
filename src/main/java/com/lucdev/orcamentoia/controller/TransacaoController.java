@@ -1,13 +1,17 @@
 package com.lucdev.orcamentoia.controller;
 
+import com.lucdev.orcamentoia.dto.AtualizarTransacaoRequest;
 import com.lucdev.orcamentoia.dto.NovaTransacaoRequest;
 import com.lucdev.orcamentoia.dto.TransacaoResponse;
 import com.lucdev.orcamentoia.model.TipoTransacao;
 import com.lucdev.orcamentoia.service.TransacaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -41,6 +45,19 @@ public class TransacaoController {
                 .map(TransacaoResponse::de)
                 .toList();
         return ResponseEntity.ok(lista);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TransacaoResponse> atualizar(@PathVariable Long id,
+                                                       @RequestBody @Valid AtualizarTransacaoRequest request) {
+        return ResponseEntity.ok(TransacaoResponse.de(transacaoService.atualizar(
+                id, request.descricao(), request.valor(), request.categoria(), request.tipo())));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> apagar(@PathVariable Long id) {
+        transacaoService.apagar(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/saldo")
