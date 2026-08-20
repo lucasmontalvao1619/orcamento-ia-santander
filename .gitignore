@@ -18,4 +18,15 @@ target/
 
 .DS_Store
 
+# Variaveis de ambiente e segredos (nunca versionar chaves de API)
+.env
+.env.*
+!.env.example
 *.env
+application-local.properties
+application-local.yml
+application-secrets.properties
+secrets.properties
+*.pem
+*.p12
+*.key
