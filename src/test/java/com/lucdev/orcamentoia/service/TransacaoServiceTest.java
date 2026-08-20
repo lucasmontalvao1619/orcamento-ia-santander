@@ -1,37 +1,105 @@
 package com.lucdev.orcamentoia.service;
 
+import com.lucdev.orcamentoia.dto.NovaTransacaoRequest;
 import com.lucdev.orcamentoia.model.TipoTransacao;
+import com.lucdev.orcamentoia.model.Transacao;
 import com.lucdev.orcamentoia.repository.TransacaoRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest(properties = "spring.ai.openai.api-key=test-key")
+@ExtendWith(MockitoExtension.class)
 class TransacaoServiceTest {
 
-    @Autowired
-    private TransacaoService transacaoService;
-
-    @Autowired
+    @Mock
     private TransacaoRepository repository;
 
-    @Test
-    void deveCalcularSaldoComoReceitasMenosDespesas() {
-        repository.deleteAll();
-        transacaoService.registrar("Salario", new BigDecimal("3000.00"), "salario", TipoTransacao.RECEITA);
-        transacaoService.registrar("Mercado", new BigDecimal("500.00"), "alimentacao", TipoTransacao.DESPESA);
+    @InjectMocks
+    private TransacaoService transacaoService;
 
-        assertEquals(new BigDecimal("2500.00"), transacaoService.calcularSaldo());
+    @Captor
+    private ArgumentCaptor<Transacao> transacaoSalva;
+
+    @Test
+    void calculaOSaldoComoReceitasMenosDespesas() {
+        when(repository.findByTipo(TipoTransacao.RECEITA))
+                .thenReturn(List.of(transacao("Salario", "3000.00", TipoTransacao.RECEITA)));
+        when(repository.findByTipo(TipoTransacao.DESPESA))
+                .thenReturn(List.of(
+                        transacao("Mercado", "500.00", TipoTransacao.DESPESA),
+                        transacao("Onibus", "9.50", TipoTransacao.DESPESA)));
+
+        assertThat(transacaoService.calcularSaldo()).isEqualByComparingTo("2490.50");
     }
 
     @Test
-    void deveRejeitarValorNaoPositivo() {
-        assertThrows(IllegalArgumentException.class, () ->
-                transacaoService.registrar("Invalida", new BigDecimal("-10.00"), "erro", TipoTransacao.DESPESA));
+    void oSaldoEZeroQuandoNaoHaTransacoes() {
+        when(repository.findByTipo(any())).thenReturn(List.of());
+
+        assertThat(transacaoService.calcularSaldo()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void rejeitaValorNaoPositivoSemTocarNoBanco() {
+        assertThatThrownBy(() -> transacaoService.registrar(
+                "Invalida", new BigDecimal("-10.00"), "erro", TipoTransacao.DESPESA))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("positivo");
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void rejeitaValorNuloSemTocarNoBanco() {
+        assertThatThrownBy(() -> transacaoService.registrar("Invalida", null, "erro", TipoTransacao.DESPESA))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(repository, never()).save(any());
+    }
+
+    // A entrada REST passa pela mesma regra da entrada da IA.
+    @Test
+    void criarAplicaAMesmaValidacaoDeValorPositivo() {
+        NovaTransacaoRequest request = new NovaTransacaoRequest(
+                "Invalida", BigDecimal.ZERO, "erro", TipoTransacao.DESPESA);
+
+        assertThatThrownBy(() -> transacaoService.criar(request))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void criarPersisteOsDadosRecebidos() {
+        NovaTransacaoRequest request = new NovaTransacaoRequest(
+                "Almoco", new BigDecimal("50.00"), "alimentacao", TipoTransacao.DESPESA);
+        when(repository.save(any(Transacao.class))).thenAnswer(chamada -> chamada.getArgument(0));
+
+        transacaoService.criar(request);
+
+        verify(repository).save(transacaoSalva.capture());
+        assertThat(transacaoSalva.getValue().getDescricao()).isEqualTo("Almoco");
+        assertThat(transacaoSalva.getValue().getValor()).isEqualByComparingTo("50.00");
+        assertThat(transacaoSalva.getValue().getCategoria()).isEqualTo("alimentacao");
+        assertThat(transacaoSalva.getValue().getTipo()).isEqualTo(TipoTransacao.DESPESA);
+        assertThat(transacaoSalva.getValue().getDataHora()).isNotNull();
+    }
+
+    private Transacao transacao(String descricao, String valor, TipoTransacao tipo) {
+        return new Transacao(descricao, new BigDecimal(valor), "categoria", tipo);
     }
 }

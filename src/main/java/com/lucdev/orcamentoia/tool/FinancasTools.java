@@ -9,9 +9,14 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 public class FinancasTools {
+
+    // O texto destas ferramentas volta para o usuario final, entao o locale e
+    // fixo: sem isso o valor sairia formatado conforme a maquina que roda a app.
+    private static final Locale BR = Locale.forLanguageTag("pt-BR");
 
     private final TransacaoService transacaoService;
 
@@ -27,14 +32,14 @@ public class FinancasTools {
             @ToolParam(description = "Tipo da transacao: RECEITA para entradas de dinheiro, DESPESA para saidas") TipoTransacao tipo) {
 
         Transacao transacao = transacaoService.registrar(descricao, valor, categoria, tipo);
-        return "Transacao registrada com sucesso. ID %d, %s de R$ %.2f na categoria %s."
-                .formatted(transacao.getId(), transacao.getTipo(), transacao.getValor(), transacao.getCategoria());
+        return String.format(BR, "Transacao registrada com sucesso. ID %d, %s de R$ %.2f na categoria %s.",
+                transacao.getId(), transacao.getTipo(), transacao.getValor(), transacao.getCategoria());
     }
 
     @Tool(description = "Consulta o saldo atual do orcamento, calculado como a soma das receitas menos a soma das despesas.")
     public String consultarSaldo() {
         BigDecimal saldo = transacaoService.calcularSaldo();
-        return "O saldo atual do orcamento e de R$ %.2f.".formatted(saldo);
+        return String.format(BR, "O saldo atual do orcamento e de R$ %.2f.", saldo);
     }
 
     @Tool(description = "Consulta o total gasto em uma categoria especifica de despesas.")
@@ -45,7 +50,7 @@ public class FinancasTools {
                 .filter(t -> t.getTipo() == TipoTransacao.DESPESA)
                 .map(Transacao::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return "O total de despesas na categoria %s e de R$ %.2f.".formatted(categoria, total);
+        return String.format(BR, "O total de despesas na categoria %s e de R$ %.2f.", categoria, total);
     }
 
     @Tool(description = "Lista as ultimas transacoes registradas no orcamento.")
@@ -56,8 +61,8 @@ public class FinancasTools {
         }
         StringBuilder resultado = new StringBuilder("Transacoes registradas:\n");
         for (Transacao t : transacoes) {
-            resultado.append("- %s | %s | R$ %.2f | %s\n"
-                    .formatted(t.getTipo(), t.getDescricao(), t.getValor(), t.getCategoria()));
+            resultado.append(String.format(BR, "- %s | %s | R$ %.2f | %s%n",
+                    t.getTipo(), t.getDescricao(), t.getValor(), t.getCategoria()));
         }
         return resultado.toString();
     }

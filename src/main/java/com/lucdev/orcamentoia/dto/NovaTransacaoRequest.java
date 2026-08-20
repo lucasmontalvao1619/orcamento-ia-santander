@@ -8,9 +8,9 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 public record NovaTransacaoRequest(
-        @NotBlank String descricao,
-        @NotNull @Positive BigDecimal valor,
-        @NotBlank String categoria,
-        @NotNull TipoTransacao tipo
+        @NotBlank(message = "e obrigatoria") String descricao,
+        @NotNull(message = "e obrigatorio") @Positive(message = "deve ser positivo") BigDecimal valor,
+        @NotBlank(message = "e obrigatoria") String categoria,
+        @NotNull(message = "e obrigatorio: RECEITA ou DESPESA") TipoTransacao tipo
 ) {
 }

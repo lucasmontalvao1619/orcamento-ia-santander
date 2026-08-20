@@ -16,13 +16,13 @@ O fluxo principal segue estes passos:
 ## Tecnologias utilizadas
 
 - Java 17
-- Spring Boot 3.3
-- Spring AI 1.0.0-M3 (ChatClient, Tool Calling, transcricao de audio)
+- Spring Boot 3.5
+- Spring AI 1.1 (ChatClient, Tool Calling, transcricao de audio)
 - Spring Data JPA
 - Banco de dados H2 (em memoria)
 - Bean Validation
 - SpringDoc / Swagger UI
-- JUnit 5
+- JUnit 5, Mockito e AssertJ
 
 ## Como executar
 
@@ -83,15 +83,46 @@ curl -X POST http://localhost:8080/api/assistente/texto \
 | GET | `/api/transacoes` | Lista transacoes (filtro opcional por `tipo`) |
 | GET | `/api/transacoes/saldo` | Retorna o saldo atual |
 
-## Melhoria implementada
+## Melhorias implementadas
 
 Alem do fluxo base de registrar transacoes por voz, esta versao evoluiu o projeto com:
 
 - **Novas ferramentas de Tool Calling:** consulta de saldo, consulta de gasto por categoria e listagem de transacoes, permitindo que o assistente responda a mais tipos de pergunta.
-- **Validacao antes de salvar:** transacoes com valor nao positivo sao rejeitadas, tanto na entrada manual (Bean Validation) quanto no registro via IA.
+- **Validacao antes de salvar:** transacoes com valor nao positivo sao rejeitadas. A entrada REST e a entrada da IA passam pelo mesmo metodo do service, entao a regra vale nos dois caminhos.
 - **Endpoint de comando por texto:** facilita testar o raciocinio do assistente sem precisar gravar audio.
-- **Tratamento de erros centralizado** com respostas HTTP adequadas.
-- **Testes automatizados** para as regras de saldo e validacao.
+- **Erros padronizados em ProblemDetail (RFC 7807),** incluindo as falhas do provedor de IA, que antes viravam um `500` opaco.
+- **Formatacao monetaria com locale fixo (pt-BR),** para que a resposta ao usuario nao mude conforme a maquina que roda a aplicacao.
+- **17 testes automatizados** cobrindo saldo, validacao, as ferramentas de Tool Calling e o contrato HTTP.
+
+## Contrato de erros
+
+Todas as falhas saem no formato [ProblemDetail (RFC 7807)](https://datatracker.ietf.org/doc/html/rfc7807):
+
+| Situacao | Status |
+|----------|--------|
+| Corpo invalido (Bean Validation) ou valor nao positivo | `400 Bad Request` |
+| Provedor de IA recusou a chamada (ex.: chave invalida) | `502 Bad Gateway` |
+| Provedor de IA temporariamente indisponivel | `503 Service Unavailable` |
+
+```json
+{
+  "type": "about:blank",
+  "title": "Falha no provedor de IA",
+  "status": 502,
+  "detail": "O provedor de IA recusou a requisicao. Verifique a chave de API e o modelo configurado.",
+  "instance": "/api/assistente/texto"
+}
+```
+
+## Testes
+
+```bash
+./mvnw test
+```
+
+Os testes de service e de tools usam Mockito e nao dependem de rede nem de chave
+de API. O teste de contexto sobe a aplicacao apenas para garantir que a
+auto-configuracao do Spring AI continua ligando o `ChatClient` e a transcricao.
 
 ## Estrutura do projeto
 
@@ -102,8 +133,9 @@ src/main/java/com/lucdev/orcamentoia/
 │   └── ChatClientConfig.java          # Configuracao do ChatClient e system prompt
 ├── controller/
 │   ├── AssistenteController.java      # Endpoints de audio e texto
-│   ├── TransacaoController.java       # Endpoints REST de transacoes
-│   └── ErrosController.java           # Tratamento centralizado de erros
+│   └── TransacaoController.java       # Endpoints REST de transacoes
+├── exception/
+│   └── ApiExceptionHandler.java       # Erros centralizados em ProblemDetail
 ├── dto/
 │   ├── ComandoResponse.java
 │   ├── NovaTransacaoRequest.java
