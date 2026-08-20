@@ -32,6 +32,11 @@ public class ConfiguracaoService {
     // de salario somaria de novo no saldo.
     @Transactional
     public Configuracao definirSalario(BigDecimal salario) {
+        return definirSalario(salario, null);
+    }
+
+    @Transactional
+    public Configuracao definirSalario(BigDecimal salario, Integer diaRecebimento) {
         if (salario == null || salario.signum() <= 0) {
             throw new IllegalArgumentException("O salario deve ser positivo.");
         }
@@ -48,6 +53,12 @@ public class ConfiguracaoService {
 
         configuracao.setSalario(salario);
         configuracao.setTransacaoSalarioId(receita.getId());
+        if (diaRecebimento != null) {
+            if (diaRecebimento < 1 || diaRecebimento > 31) {
+                throw new IllegalArgumentException("O dia do recebimento deve estar entre 1 e 31.");
+            }
+            configuracao.setDiaRecebimento(diaRecebimento);
+        }
         return repository.save(configuracao);
     }
 

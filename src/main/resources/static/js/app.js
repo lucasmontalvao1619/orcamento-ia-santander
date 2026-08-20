@@ -4,10 +4,9 @@
  * Orcamento IA - interface web
  *
  * O ditado de voz roda no proprio navegador (Web Speech API) e envia texto para
- * /api/assistente/texto. Isso mantem o fluxo de voz funcionando com apenas a
- * chave da Anthropic, que nao oferece transcricao de audio. Quando a chave da
- * OpenAI tambem esta presente, o audio bruto vai para /api/assistente/audio e
- * quem transcreve e o Whisper, no servidor.
+ * /api/assistente/texto. Isso mantem o fluxo de voz funcionando com o modelo
+ * local, que nao transcreve audio. Quando ha chave da OpenAI, o audio bruto vai
+ * para /api/assistente/audio e quem transcreve e o Whisper, no servidor.
  * ------------------------------------------------------------------------- */
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -115,7 +114,8 @@ async function carregarStatus() {
         const texto = el('texto-status');
         if (status.iaConfigurada) {
             pilula.className = 'pilula pilula--ok';
-            texto.textContent = 'Claude conectado';
+            // O rotulo segue o provedor real informado pelo backend.
+            texto.textContent = status.provedor === 'openai' ? 'OpenAI conectada' : 'Modelo local ativo';
         } else {
             pilula.className = 'pilula pilula--alerta';
             texto.textContent = 'IA não configurada';
@@ -126,6 +126,26 @@ async function carregarStatus() {
     } catch {
         el('texto-status').textContent = 'Indisponível';
     }
+}
+
+// A autoria vem do servidor (/api/sobre), nao escrita no HTML: assim o nome
+// tem uma fonte unica, no backend, em vez de ser marcacao solta.
+async function carregarSobre() {
+    const resposta = await fetch('/api/sobre');
+    const sobre = await resposta.json();
+
+    el('autor-topo').textContent = sobre.autor;
+    el('autor-nome').textContent = sobre.autor;
+    el('autor-descricao').textContent = sobre.descricao;
+    el('autor-inicial').textContent = sobre.autor
+        .split(' ')
+        .map((parte) => parte[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+    el('autor-github').href = sobre.github;
+    el('autor-site').href = sobre.site;
+    document.title = `${sobre.projeto} — ${sobre.autor}`;
 }
 
 async function carregarTransacoes() {
@@ -237,16 +257,20 @@ async function carregarConfiguracao() {
     const config = await resposta.json();
     estado.salario = config.salario;
     if (config.salario != null) el('campo-salario').value = config.salario;
+    if (config.diaRecebimento != null) el('campo-dia').value = config.diaRecebimento;
     // Primeiro acesso: pede o salario antes de liberar a tela.
     el('boas-vindas').hidden = config.configurado;
     if (!config.configurado) setTimeout(() => el('salario-inicial').focus(), 60);
 }
 
-async function salvarSalario(valor) {
+async function salvarSalario(valor, dia = null) {
     const resposta = await fetch('/api/configuracao/salario', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ salario: Number(valor) })
+        body: JSON.stringify({
+            salario: Number(valor),
+            diaRecebimento: dia ? Number(dia) : null
+        })
     });
     if (!resposta.ok) throw new Error(await lerErro(resposta));
     const config = await resposta.json();
@@ -562,7 +586,7 @@ el('form-salario').addEventListener('submit', async (e) => {
     erro.hidden = true;
     botao.disabled = true;
     try {
-        await salvarSalario(el('campo-salario').value);
+        await salvarSalario(el('campo-salario').value, el('campo-dia').value);
         await carregarTransacoes();
         el('modal-config').hidden = true;
         notificar('Salário atualizado.', 'ok');
@@ -691,6 +715,6 @@ if (!Reconhecimento) {
 
 // A ordem importa: categorias antes das transacoes, senao a tabela renderiza
 // sem conseguir traduzir o valor da categoria para o rotulo exibido.
-Promise.all([carregarStatus(), carregarCategorias(), carregarConfiguracao()])
+Promise.all([carregarStatus(), carregarCategorias(), carregarConfiguracao(), carregarSobre()])
     .then(() => Promise.all([carregarTransacoes(), carregarInvestimentos()]))
     .catch(() => notificar('Falha ao carregar os dados iniciais.', 'erro'));

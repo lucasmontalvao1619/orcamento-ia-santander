@@ -23,6 +23,10 @@ public class Configuracao {
     // criar outra receita, atualizamos a que ja existe.
     private Long transacaoSalarioId;
 
+    // Dia do mes em que o salario cai. E uma anotacao do orcamento: nao existe
+    // agendador criando lancamentos sozinho.
+    private Integer diaRecebimento;
+
     public Configuracao() {
     }
 
@@ -44,6 +48,14 @@ public class Configuracao {
 
     public void setSalario(BigDecimal salario) {
         this.salario = salario;
+    }
+
+    public Integer getDiaRecebimento() {
+        return diaRecebimento;
+    }
+
+    public void setDiaRecebimento(Integer diaRecebimento) {
+        this.diaRecebimento = diaRecebimento;
     }
 
     public Long getTransacaoSalarioId() {

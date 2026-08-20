@@ -1,7 +1,9 @@
 package com.lucdev.orcamentoia.tool;
 
+import com.lucdev.orcamentoia.model.Configuracao;
 import com.lucdev.orcamentoia.model.TipoTransacao;
 import com.lucdev.orcamentoia.model.Transacao;
+import com.lucdev.orcamentoia.service.ConfiguracaoService;
 import com.lucdev.orcamentoia.service.TransacaoService;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -19,9 +21,41 @@ public class FinancasTools {
     private static final Locale BR = Locale.forLanguageTag("pt-BR");
 
     private final TransacaoService transacaoService;
+    private final ConfiguracaoService configuracaoService;
 
-    public FinancasTools(TransacaoService transacaoService) {
+    public FinancasTools(TransacaoService transacaoService, ConfiguracaoService configuracaoService) {
         this.transacaoService = transacaoService;
+        this.configuracaoService = configuracaoService;
+    }
+
+    // Sem esta ferramenta, "meu salario e 3000" caia em registrarTransacao e
+    // virava mais uma receita, somando em cima do salario que ja existia.
+    // Aqui o salario e substituido, nao acrescentado.
+    @Tool(description = "Define ou altera o salario mensal do usuario. Use quando ele disser quanto "
+            + "ganha, quanto recebe por mes, ou pedir para estabelecer, configurar ou corrigir o "
+            + "salario. Substitui o salario anterior em vez de somar.")
+    public String definirSalario(
+            @ToolParam(description = "Valor do salario mensal em reais, sempre positivo") BigDecimal salario,
+            @ToolParam(required = false, description = "Dia do mes em que o salario cai, de 1 a 31. "
+                    + "Deixe vazio se o usuario nao disser") Integer diaDoRecebimento) {
+
+        Configuracao configuracao = configuracaoService.definirSalario(salario, diaDoRecebimento);
+        String quando = configuracao.getDiaRecebimento() == null
+                ? ""
+                : String.format(BR, ", recebido todo dia %d", configuracao.getDiaRecebimento());
+        return String.format(BR, "Salario definido em R$ %.2f%s.", configuracao.getSalario(), quando);
+    }
+
+    @Tool(description = "Consulta o salario mensal configurado pelo usuario.")
+    public String consultarSalario() {
+        Configuracao configuracao = configuracaoService.obter();
+        if (!configuracao.isConfigurado()) {
+            return "Nenhum salario foi configurado ainda.";
+        }
+        String quando = configuracao.getDiaRecebimento() == null
+                ? ""
+                : String.format(BR, ", recebido todo dia %d", configuracao.getDiaRecebimento());
+        return String.format(BR, "O salario configurado e de R$ %.2f%s.", configuracao.getSalario(), quando);
     }
 
     @Tool(description = "Registra uma nova transacao financeira (receita ou despesa) no orcamento do usuario.")

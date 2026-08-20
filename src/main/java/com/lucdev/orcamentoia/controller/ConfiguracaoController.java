@@ -37,7 +37,7 @@ public class ConfiguracaoController {
 
     @PutMapping("/configuracao/salario")
     public ResponseEntity<ConfiguracaoResponse> definirSalario(@RequestBody @Valid SalarioRequest request) {
-        return ResponseEntity.ok(ConfiguracaoResponse.de(configuracaoService.definirSalario(request.salario())));
+        return ResponseEntity.ok(ConfiguracaoResponse.de(configuracaoService.definirSalario(request.salario(), request.diaRecebimento())));
     }
 
     // Uma fonte unica de categorias para a interface, para que o formulario e o

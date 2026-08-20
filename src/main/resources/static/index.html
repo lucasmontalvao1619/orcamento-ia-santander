@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Lucas Montalvão">
+    <meta name="description" content="Assistente financeiro pessoal com Spring Boot, Spring AI e Tool Calling.">
     <title>Orçamento IA — Assistente Financeiro por Voz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,7 +48,7 @@
         </div>
         <div class="topo-titulo">
             <h1>Orçamento IA</h1>
-            <p>Assistente financeiro por voz</p>
+            <p>Assistente financeiro por voz <span class="assinatura-topo">· por <strong id="autor-topo">—</strong></span></p>
         </div>
     </div>
     <div class="topo-acoes">
@@ -281,8 +283,18 @@
 </main>
 
 <footer class="rodape">
-    <span>Spring Boot · Spring AI · Tool Calling</span>
-    <a href="/swagger-ui.html" target="_blank" rel="noopener">Documentação da API</a>
+    <div class="rodape-autor">
+        <span class="rodape-marca" id="autor-inicial">—</span>
+        <div>
+            <strong id="autor-nome">—</strong>
+            <span id="autor-descricao">Carregando…</span>
+        </div>
+    </div>
+    <div class="rodape-links">
+        <a id="autor-github" href="#" target="_blank" rel="noopener">GitHub</a>
+        <a id="autor-site" href="#" target="_blank" rel="noopener">Portfólio</a>
+        <a href="/swagger-ui.html" target="_blank" rel="noopener">API</a>
+    </div>
 </footer>
 
 <div id="notificacao" class="notificacao" role="status" aria-live="polite" hidden></div>
@@ -298,10 +310,16 @@
         <p>Alterar o salário atualiza o lançamento existente em vez de criar outro,
            então o saldo não é somado duas vezes.</p>
         <form id="form-salario">
-            <label>
-                <span>Salário mensal (R$)</span>
-                <input name="salario" id="campo-salario" type="number" step="0.01" min="0.01" required placeholder="4500,00">
-            </label>
+            <div class="formulario-par">
+                <label>
+                    <span>Salário mensal (R$)</span>
+                    <input name="salario" id="campo-salario" type="number" step="0.01" min="0.01" required placeholder="4500,00">
+                </label>
+                <label>
+                    <span>Cai todo dia</span>
+                    <input name="diaRecebimento" id="campo-dia" type="number" min="1" max="31" placeholder="15">
+                </label>
+            </div>
             <button type="submit" class="botao botao--bloco">Salvar</button>
             <p id="erro-salario" class="erro" hidden></p>
         </form>

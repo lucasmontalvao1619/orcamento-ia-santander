@@ -1,6 +1,8 @@
 package com.lucdev.orcamentoia.service;
 
+import com.lucdev.orcamentoia.tool.AppTools;
 import com.lucdev.orcamentoia.tool.FinancasTools;
+import com.lucdev.orcamentoia.tool.InvestimentoTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -25,16 +27,23 @@ public class AssistenteService {
 
     private final ChatClient chatClient;
     private final FinancasTools financasTools;
+    private final InvestimentoTools investimentoTools;
+    private final AppTools appTools;
 
-    public AssistenteService(ChatClient chatClient, FinancasTools financasTools) {
+    public AssistenteService(ChatClient chatClient,
+                             FinancasTools financasTools,
+                             InvestimentoTools investimentoTools,
+                             AppTools appTools) {
         this.chatClient = chatClient;
         this.financasTools = financasTools;
+        this.investimentoTools = investimentoTools;
+        this.appTools = appTools;
     }
 
     public String processarComando(String textoUsuario) {
         String resposta = chatClient.prompt()
                 .user(textoUsuario)
-                .tools(financasTools)
+                .tools(financasTools, investimentoTools, appTools)
                 .call()
                 .content();
 

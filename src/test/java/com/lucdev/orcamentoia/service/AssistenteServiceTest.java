@@ -1,6 +1,8 @@
 package com.lucdev.orcamentoia.service;
 
+import com.lucdev.orcamentoia.tool.AppTools;
 import com.lucdev.orcamentoia.tool.FinancasTools;
+import com.lucdev.orcamentoia.tool.InvestimentoTools;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -23,11 +25,17 @@ class AssistenteServiceTest {
     @Mock
     private FinancasTools financasTools;
 
+    @Mock
+    private InvestimentoTools investimentoTools;
+
+    @Mock
+    private AppTools appTools;
+
     private AssistenteService comRespostaDoModelo(String resposta) {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
         when(chatClient.prompt().user(anyString()).tools(any(Object[].class)).call().content())
                 .thenReturn(resposta);
-        return new AssistenteService(chatClient, financasTools);
+        return new AssistenteService(chatClient, financasTools, investimentoTools, appTools);
     }
 
     @Test

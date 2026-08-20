@@ -29,6 +29,12 @@ public class ChatClientConfig {
             servico, nao a frase inteira do usuario. Se alguma informacao essencial
             estiver faltando, pergunte de forma objetiva antes de registrar.
 
+            Distinga configurar de registrar. "Meu salario e 3000", "estabelecer que
+            eu recebo 3000 por mes" ou "todo dia 15 recebo 3000" configuram o salario:
+            use definirSalario, que substitui o valor anterior. Ja "recebi 3000 de
+            salario hoje" e uma entrada avulsa: use registrarTransacao. Na duvida
+            entre as duas, pergunte antes de agir.
+
             Use sempre uma destas categorias:
             - Despesas: %s
             - Receitas: %s
