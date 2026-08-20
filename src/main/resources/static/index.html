@@ -49,8 +49,16 @@
             <p>Assistente financeiro por voz</p>
         </div>
     </div>
-    <div id="pilula-status" class="pilula pilula--neutra">
-        <span class="ponto"></span><span id="texto-status">Verificando…</span>
+    <div class="topo-acoes">
+        <div id="pilula-status" class="pilula pilula--neutra">
+            <span class="ponto"></span><span id="texto-status">Verificando…</span>
+        </div>
+        <button type="button" id="botao-config" class="icone-botao" aria-label="Configurações">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </button>
     </div>
 </header>
 
@@ -136,23 +144,20 @@
             </div>
         </section>
 
-        <div class="coluna-lateral">
-
         <section class="painel" aria-label="Novo lançamento">
             <div class="painel-cabecalho">
                 <h2>Novo lançamento</h2>
                 <span class="etiqueta">Manual</span>
             </div>
 
-            <div class="atalhos" id="atalhos">
-                <button type="button" data-tipo="DESPESA" data-categoria="alimentacao">− Despesa</button>
-                <button type="button" data-tipo="RECEITA" data-categoria="presente">+ Presente</button>
-                <button type="button" data-tipo="RECEITA" data-categoria="extra">+ Renda extra</button>
+            <div class="seletor" id="seletor-tipo" role="group" aria-label="Tipo do lançamento">
+                <button type="button" class="ativo" data-tipo="DESPESA">Gastei</button>
+                <button type="button" data-tipo="RECEITA">Recebi</button>
             </div>
 
             <form id="form-transacao" class="formulario">
                 <label>
-                    <span>Descrição</span>
+                    <span id="rotulo-descricao">Com o quê</span>
                     <input name="descricao" type="text" required placeholder="Almoço no restaurante">
                 </label>
                 <div class="formulario-par">
@@ -161,65 +166,14 @@
                         <input name="valor" type="number" step="0.01" min="0.01" required placeholder="50,00">
                     </label>
                     <label>
-                        <span>Tipo</span>
-                        <select name="tipo" id="campo-tipo" required>
-                            <option value="DESPESA">Despesa</option>
-                            <option value="RECEITA">Receita</option>
-                        </select>
+                        <span>Categoria</span>
+                        <select name="categoria" id="campo-categoria" required></select>
                     </label>
                 </div>
-                <label>
-                    <span>Categoria</span>
-                    <select name="categoria" id="campo-categoria" required></select>
-                </label>
-                <button type="submit" class="botao botao--bloco">Registrar lançamento</button>
+                <button type="submit" id="botao-lancar" class="botao botao--bloco">Registrar gasto</button>
                 <p id="erro-formulario" class="erro" hidden></p>
             </form>
         </section>
-
-        <section class="painel" aria-label="Entrada de dinheiro">
-            <div class="painel-cabecalho">
-                <h2>Ganhei dinheiro</h2>
-                <span class="etiqueta">Entrada</span>
-            </div>
-            <p class="nota nota--topo">Registre dinheiro que entrou na conta, sem passar pelo assistente.</p>
-            <form id="form-entrada" class="formulario">
-                <label>
-                    <span>De onde veio</span>
-                    <input name="descricao" type="text" required placeholder="Presente da minha avó">
-                </label>
-                <div class="formulario-par">
-                    <label>
-                        <span>Valor (R$)</span>
-                        <input name="valor" type="number" step="0.01" min="0.01" required placeholder="50,00">
-                    </label>
-                    <label>
-                        <span>Origem</span>
-                        <select name="categoria" id="campo-entrada-categoria" required></select>
-                    </label>
-                </div>
-                <button type="submit" class="botao botao--bloco botao--verde">Adicionar à conta</button>
-                <p id="erro-entrada" class="erro" hidden></p>
-            </form>
-        </section>
-
-        <section class="painel" aria-label="Configurações">
-            <div class="painel-cabecalho">
-                <h2>Configurações</h2>
-                <span class="etiqueta">Salário</span>
-            </div>
-            <form id="form-salario" class="formulario">
-                <label>
-                    <span>Salário mensal (R$)</span>
-                    <input name="salario" id="campo-salario" type="number" step="0.01" min="0.01" required placeholder="4500,00">
-                </label>
-                <button type="submit" class="botao botao--bloco">Atualizar salário</button>
-                <p id="erro-salario" class="erro" hidden></p>
-            </form>
-            <p class="nota">Alterar o salário atualiza o lançamento de salário existente
-               em vez de criar outro, então o saldo não é somado duas vezes.</p>
-        </section>
-
         </div>
 
     </div>
@@ -267,9 +221,20 @@
                     </svg>
                 </div>
                 <div class="porquinho-info">
-                    <span class="cartao-rotulo">Guardado no porquinho</span>
+                    <span class="cartao-rotulo">Total no porquinho</span>
                     <strong id="valor-porquinho" class="cartao-valor">R$ 0,00</strong>
                     <span id="legenda-porquinho" class="cartao-legenda">Separado do saldo do orçamento</span>
+                </div>
+                <div class="porquinho-rendimento">
+                    <div>
+                        <span class="cartao-rotulo">Depositado</span>
+                        <strong id="valor-depositado">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <span class="cartao-rotulo">Rendimento</span>
+                        <strong id="valor-rendimento" class="rendimento">+ R$ 0,00</strong>
+                    </div>
+                    <span id="taxa-cdi" class="taxa">100% do CDI</span>
                 </div>
             </div>
 
@@ -321,6 +286,27 @@
 </footer>
 
 <div id="notificacao" class="notificacao" role="status" aria-live="polite" hidden></div>
+
+<div id="modal-config" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="titulo-config">
+    <div class="modal-caixa">
+        <button type="button" id="fechar-config" class="modal-fechar" aria-label="Fechar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+        </button>
+        <h2 id="titulo-config">Configurações</h2>
+        <p>Alterar o salário atualiza o lançamento existente em vez de criar outro,
+           então o saldo não é somado duas vezes.</p>
+        <form id="form-salario">
+            <label>
+                <span>Salário mensal (R$)</span>
+                <input name="salario" id="campo-salario" type="number" step="0.01" min="0.01" required placeholder="4500,00">
+            </label>
+            <button type="submit" class="botao botao--bloco">Salvar</button>
+            <p id="erro-salario" class="erro" hidden></p>
+        </form>
+    </div>
+</div>
 
 <script src="/js/app.js"></script>
 </body>

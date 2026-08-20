@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 // O porquinho e um controle a parte: total proprio, sem misturar com o saldo do
@@ -40,11 +42,19 @@ public class InvestimentoController {
                 .toList());
     }
 
+    // O rendimento e calculado com muitas casas; a API expoe em centavos.
+    private static BigDecimal escala(BigDecimal valor) {
+        return valor.setScale(2, RoundingMode.HALF_EVEN);
+    }
+
     @GetMapping("/resumo")
     public ResponseEntity<ResumoInvestimentoResponse> resumo() {
         return ResponseEntity.ok(new ResumoInvestimentoResponse(
-                investimentoService.calcularTotal(),
-                investimentoService.somar(TipoInvestimento.APORTE),
-                investimentoService.somar(TipoInvestimento.RETIRADA)));
+                escala(investimentoService.calcularTotal()),
+                escala(investimentoService.somar(TipoInvestimento.APORTE)),
+                escala(investimentoService.somar(TipoInvestimento.RETIRADA)),
+                escala(investimentoService.calcularRendimento()),
+                escala(investimentoService.calcularSaldoComRendimento()),
+                investimentoService.getCdiAnual()));
     }
 }

@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 public record ResumoInvestimentoResponse(
         BigDecimal total,
         BigDecimal aportes,
-        BigDecimal retiradas
+        BigDecimal retiradas,
+        BigDecimal rendimento,
+        BigDecimal totalComRendimento,
+        BigDecimal cdiAnual
 ) {
 }

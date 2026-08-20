@@ -17,6 +17,7 @@ const estado = {
     transacoes: [],
     categorias: { despesas: [], receitas: [] },
     salario: null,
+    tipoLancamento: 'DESPESA',
     filtro: 'TODOS',
     iaConfigurada: false,
     transcricaoServidor: false,
@@ -211,12 +212,7 @@ function renderizarTabela(idDestaque = null) {
 async function carregarCategorias() {
     const resposta = await fetch('/api/categorias');
     estado.categorias = await resposta.json();
-    preencherCategorias(el('campo-tipo').value);
-    // O painel "Ganhei dinheiro" so registra entradas, entao lista apenas
-    // categorias de receita.
-    el('campo-entrada-categoria').innerHTML = estado.categorias.receitas
-        .map((c) => `<option value="${c.valor}">${c.rotulo}</option>`)
-        .join('');
+    preencherCategorias(estado.tipoLancamento);
 }
 
 function preencherCategorias(tipo, selecionada = null) {
@@ -479,7 +475,7 @@ el('form-transacao').addEventListener('submit', async (e) => {
                 descricao: dados.descricao,
                 valor: Number(dados.valor),
                 categoria: dados.categoria,
-                tipo: dados.tipo
+                tipo: estado.tipoLancamento
             })
         });
 
@@ -505,14 +501,26 @@ el('form-transacao').addEventListener('submit', async (e) => {
 
 // Trocar o tipo troca a lista de categorias: despesa e receita tem opcoes
 // diferentes (alimentacao/transporte... contra salario/presente/extra).
-el('campo-tipo').addEventListener('change', (e) => preencherCategorias(e.target.value));
+// Um formulario so para gasto e entrada: trocar o tipo troca a lista de
+// categorias, o rotulo do primeiro campo e a cor do botao.
+function selecionarTipo(tipo) {
+    estado.tipoLancamento = tipo;
+    const receita = tipo === 'RECEITA';
 
-el('atalhos').addEventListener('click', (e) => {
+    el('seletor-tipo').querySelectorAll('button').forEach((b) => {
+        b.classList.toggle('ativo', b.dataset.tipo === tipo);
+    });
+    el('rotulo-descricao').textContent = receita ? 'De onde veio' : 'Com o quê';
+    el('form-transacao').querySelector('input[name=descricao]').placeholder =
+        receita ? 'Presente da minha avó' : 'Almoço no restaurante';
+    el('botao-lancar').textContent = receita ? 'Adicionar à conta' : 'Registrar gasto';
+    el('botao-lancar').classList.toggle('botao--verde', receita);
+    preencherCategorias(tipo);
+}
+
+el('seletor-tipo').addEventListener('click', (e) => {
     const botao = e.target.closest('button');
-    if (!botao) return;
-    el('campo-tipo').value = botao.dataset.tipo;
-    preencherCategorias(botao.dataset.tipo, botao.dataset.categoria);
-    el('form-transacao').querySelector('input[name=descricao]').focus();
+    if (botao) selecionarTipo(botao.dataset.tipo);
 });
 
 el('form-boas-vindas').addEventListener('submit', async (e) => {
@@ -534,6 +542,19 @@ el('form-boas-vindas').addEventListener('submit', async (e) => {
     }
 });
 
+el('botao-config').addEventListener('click', () => {
+    el('modal-config').hidden = false;
+    setTimeout(() => el('campo-salario').focus(), 60);
+});
+el('fechar-config').addEventListener('click', () => { el('modal-config').hidden = true; });
+el('modal-config').addEventListener('click', (e) => {
+    // Clicar no fundo escuro fecha; clicar dentro da caixa nao.
+    if (e.target === el('modal-config')) el('modal-config').hidden = true;
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !el('modal-config').hidden) el('modal-config').hidden = true;
+});
+
 el('form-salario').addEventListener('submit', async (e) => {
     e.preventDefault();
     const erro = el('erro-salario');
@@ -543,50 +564,10 @@ el('form-salario').addEventListener('submit', async (e) => {
     try {
         await salvarSalario(el('campo-salario').value);
         await carregarTransacoes();
+        el('modal-config').hidden = true;
         notificar('Salário atualizado.', 'ok');
     } catch (falha) {
         erro.textContent = falha.message;
-        erro.hidden = false;
-    } finally {
-        botao.disabled = false;
-    }
-});
-
-/* -------------------------------------------------- entrada de dinheiro */
-
-// Caminho direto, sem IA: o usuario registra o que entrou na conta.
-el('form-entrada').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const erro = el('erro-entrada');
-    const botao = form.querySelector('button[type=submit]');
-    const dados = Object.fromEntries(new FormData(form));
-    erro.hidden = true;
-    botao.disabled = true;
-
-    try {
-        const resposta = await fetch('/api/transacoes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                descricao: dados.descricao,
-                valor: Number(dados.valor),
-                categoria: dados.categoria,
-                tipo: 'RECEITA'
-            })
-        });
-        if (!resposta.ok) {
-            erro.textContent = await lerErro(resposta);
-            erro.hidden = false;
-            return;
-        }
-        const criada = await resposta.json();
-        form.reset();
-        await carregarTransacoes();
-        renderizarTabela(criada.id);
-        notificar(`Entrada de ${MOEDA.format(Number(criada.valor))} registrada.`, 'ok');
-    } catch {
-        erro.textContent = 'Não foi possível falar com o servidor.';
         erro.hidden = false;
     } finally {
         botao.disabled = false;
@@ -604,7 +585,11 @@ async function carregarInvestimentos(idDestaque = null) {
     const lista = await listaResp.json();
     const resumo = await resumoResp.json();
 
-    el('valor-porquinho').textContent = MOEDA.format(Number(resumo.total));
+    // O numero grande e o saldo ja corrigido pelo CDI, como num extrato.
+    el('valor-porquinho').textContent = MOEDA.format(Number(resumo.totalComRendimento));
+    el('valor-depositado').textContent = MOEDA.format(Number(resumo.total));
+    el('valor-rendimento').textContent = '+ ' + MOEDA.format(Number(resumo.rendimento));
+    el('taxa-cdi').textContent = `100% do CDI (${(Number(resumo.cdiAnual) * 100).toFixed(2).replace('.', ',')}% a.a.)`;
     el('legenda-porquinho').textContent = lista.length
         ? `${MOEDA.format(Number(resumo.aportes))} guardados · ${MOEDA.format(Number(resumo.retiradas))} retirados`
         : 'Separado do saldo do orçamento';

@@ -148,7 +148,7 @@ button { cursor: pointer; border: none; background: none; }
 }
 
 .colunas { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
-.coluna-lateral { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
 
 /* ------------------------------------------------------------- cartoes ---- */
 
@@ -707,3 +707,102 @@ button { cursor: pointer; border: none; background: none; }
 .indicador--retirada { background: rgba(152,163,181,.13); color: var(--texto-2); box-shadow: inset 0 0 0 1px rgba(152,163,181,.18); }
 .celula-valor--aporte   { color: var(--receita); }
 .celula-valor--retirada { color: var(--texto-2); }
+
+
+/* ---------------------------------------------------- topo: acoes ---- */
+
+.topo-acoes { display: flex; align-items: center; gap: 10px; }
+
+.icone-botao {
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    border-radius: 10px;
+    border: 1px solid var(--borda-forte);
+    background: var(--superficie);
+    color: var(--texto-2);
+    transition: color var(--t), border-color var(--t), background var(--t), transform var(--t);
+}
+.icone-botao svg { width: 16px; height: 16px; }
+.icone-botao:hover { color: var(--texto); background: var(--superficie-3); border-color: #3c4554; }
+.icone-botao:active { transform: translateY(1px); }
+
+/* ------------------------------------------- seletor Gastei / Recebi ---- */
+
+/* Um controle segmentado no lugar de dois formularios: os campos sao os
+   mesmos, so muda o tipo e a lista de categorias. */
+.seletor {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    padding: 3px;
+    margin-bottom: 16px;
+    border-radius: var(--r-m);
+    background: var(--superficie-2);
+    border: 1px solid var(--borda);
+}
+.seletor button {
+    padding: 8px 12px;
+    border-radius: var(--r-p);
+    font-size: 13.5px; font-weight: 550;
+    color: var(--texto-3);
+    transition: color var(--t), background var(--t), box-shadow var(--t);
+}
+.seletor button:hover { color: var(--texto-2); }
+.seletor button.ativo {
+    color: #fff; font-weight: 620;
+    background: linear-gradient(160deg, #ff1f1f, #cc0000);
+    box-shadow: 0 2px 8px rgba(236,0,0,.28);
+}
+/* Receita e verde: a cor do botao antecipa o efeito no saldo. */
+.seletor button.ativo[data-tipo="RECEITA"] {
+    background: linear-gradient(160deg, #34d17d, #1f9c5b);
+    box-shadow: 0 2px 8px rgba(52,209,125,.26);
+    color: #04240f;
+}
+
+/* --------------------------------------------------- fechar do modal ---- */
+
+.modal-caixa { position: relative; }
+
+.modal-fechar {
+    position: absolute; top: 14px; right: 14px;
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border-radius: 9px;
+    color: var(--texto-3);
+    transition: color var(--t), background var(--t);
+}
+.modal-fechar svg { width: 15px; height: 15px; }
+.modal-fechar:hover { color: var(--texto); background: var(--superficie-3); }
+
+/* ------------------------------------------------ porquinho: rendimento ---- */
+
+.porquinho { flex-wrap: wrap; }
+.porquinho-info { flex: 1; }
+
+.porquinho-rendimento {
+    display: flex; align-items: center; gap: 26px;
+    padding-left: 26px;
+    border-left: 1px solid var(--borda);
+}
+.porquinho-rendimento > div { display: flex; flex-direction: column; gap: 2px; }
+.porquinho-rendimento strong { font-size: 17px; font-weight: 620; letter-spacing: -.02em; }
+.porquinho-rendimento .rendimento { color: var(--receita); }
+.porquinho-rendimento .taxa {
+    align-self: flex-start;
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--receita);
+    border: 1px solid rgba(52,209,125,.3);
+    background: rgba(52,209,125,.09);
+    border-radius: 999px;
+    padding: 4px 10px;
+}
+@media (max-width: 720px) {
+    .porquinho-rendimento {
+        width: 100%;
+        padding-left: 0; padding-top: 16px;
+        border-left: none; border-top: 1px solid var(--borda);
+        gap: 20px; flex-wrap: wrap;
+    }
+}
