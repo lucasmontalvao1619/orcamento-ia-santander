@@ -18,6 +18,8 @@ zip -r "$PACOTE" . \
     -x "dist/*" \
     -x ".git/*" \
     -x ".idea/*" \
+    -x ".claude/*" \
+    -x ".vscode/*" \
     -x "*.iml" \
     -x ".DS_Store" \
     -x "*/.DS_Store" \
