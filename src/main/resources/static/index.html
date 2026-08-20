@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamento IA — Assistente Financeiro por Voz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+
+<div id="boas-vindas" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="titulo-boas-vindas">
+    <div class="modal-caixa">
+        <div class="modal-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+                <path d="M3 7l2.5-4h13L21 7"/>
+                <path d="M12 12v4M10 14h4"/>
+            </svg>
+        </div>
+        <h2 id="titulo-boas-vindas">Bem-vindo ao Orçamento IA</h2>
+        <p>Para começar, informe quanto você recebe por mês — ou quanto tem disponível agora.
+           Esse valor entra como a receita inicial do seu orçamento e pode ser alterado
+           depois em <strong>Configurações</strong>.</p>
+        <form id="form-boas-vindas">
+            <label>
+                <span>Salário ou saldo inicial (R$)</span>
+                <input id="salario-inicial" type="number" step="0.01" min="0.01" required placeholder="4500,00">
+            </label>
+            <button type="submit" class="botao botao--bloco">Começar</button>
+            <p id="erro-boas-vindas" class="erro" hidden></p>
+        </form>
+    </div>
+</div>
+
+<header class="topo">
+    <div class="topo-marca">
+        <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <path d="M12 19v3"/>
+            </svg>
+        </div>
+        <div class="topo-titulo">
+            <h1>Orçamento IA</h1>
+            <p>Assistente financeiro por voz</p>
+        </div>
+    </div>
+    <div id="pilula-status" class="pilula pilula--neutra">
+        <span class="ponto"></span><span id="texto-status">Verificando…</span>
+    </div>
+</header>
+
+<div id="aviso" class="aviso" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 9v4M12 17h.01"/>
+        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+    </svg>
+    <div>
+        <strong>Assistente de IA indisponível.</strong>
+        <span id="aviso-texto"></span>
+        O restante da aplicação — lançamentos manuais, saldo e histórico — funciona normalmente.
+    </div>
+</div>
+
+<main class="conteudo">
+
+    <section class="cartoes" aria-label="Resumo do orçamento">
+        <article class="cartao cartao--saldo">
+            <span class="cartao-rotulo">Saldo atual</span>
+            <strong id="valor-saldo" class="cartao-valor">R$ 0,00</strong>
+            <span id="legenda-saldo" class="cartao-legenda">Receitas menos despesas</span>
+        </article>
+        <article class="cartao cartao--receita">
+            <span class="cartao-rotulo">Receitas</span>
+            <strong id="valor-receitas" class="cartao-valor">R$ 0,00</strong>
+            <span id="legenda-receitas" class="cartao-legenda">Nenhum lançamento</span>
+        </article>
+        <article class="cartao cartao--despesa">
+            <span class="cartao-rotulo">Despesas</span>
+            <strong id="valor-despesas" class="cartao-valor">R$ 0,00</strong>
+            <span id="legenda-despesas" class="cartao-legenda">Nenhum lançamento</span>
+        </article>
+    </section>
+
+    <div class="colunas">
+
+        <section class="painel painel--assistente" aria-label="Assistente">
+            <div class="painel-cabecalho">
+                <h2>Assistente</h2>
+                <span class="etiqueta">Voz &amp; texto</span>
+            </div>
+
+            <div class="gravador">
+                <button id="botao-microfone" class="microfone" type="button" aria-label="Gravar comando de voz">
+                    <svg class="icone-microfone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <path d="M12 19v3"/>
+                    </svg>
+                    <svg class="icone-parar" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="7" y="7" width="10" height="10" rx="2"/>
+                    </svg>
+                </button>
+                <div class="gravador-info">
+                    <span id="gravador-estado" class="gravador-estado">Toque para falar</span>
+                    <span id="gravador-dica" class="gravador-dica">Ex.: “Gastei 50 reais com almoço na categoria alimentação”</span>
+                </div>
+            </div>
+
+            <form id="form-texto" class="linha-texto">
+                <input id="entrada-texto" type="text" autocomplete="off"
+                       placeholder="Ou digite um comando…" aria-label="Comando em texto">
+                <button type="submit" class="botao botao--primario" aria-label="Enviar comando">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </form>
+
+            <div class="sugestoes" id="sugestoes">
+                <button type="button" data-comando="Qual é o meu saldo atual?">Qual é o meu saldo?</button>
+                <button type="button" data-comando="Recebi 3000 reais de salário">Recebi meu salário</button>
+                <button type="button" data-comando="Quanto eu gastei com alimentação?">Gastos com alimentação</button>
+                <button type="button" data-comando="Liste minhas transações">Listar transações</button>
+            </div>
+
+            <div id="conversa" class="conversa" aria-live="polite">
+                <div class="conversa-vazia">
+                    <p>Nenhuma conversa ainda.</p>
+                    <span>Grave um áudio ou digite um comando para começar.</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="coluna-lateral">
+
+        <section class="painel" aria-label="Novo lançamento">
+            <div class="painel-cabecalho">
+                <h2>Novo lançamento</h2>
+                <span class="etiqueta">Manual</span>
+            </div>
+
+            <div class="atalhos" id="atalhos">
+                <button type="button" data-tipo="DESPESA" data-categoria="alimentacao">− Despesa</button>
+                <button type="button" data-tipo="RECEITA" data-categoria="presente">+ Presente</button>
+                <button type="button" data-tipo="RECEITA" data-categoria="extra">+ Renda extra</button>
+            </div>
+
+            <form id="form-transacao" class="formulario">
+                <label>
+                    <span>Descrição</span>
+                    <input name="descricao" type="text" required placeholder="Almoço no restaurante">
+                </label>
+                <div class="formulario-par">
+                    <label>
+                        <span>Valor (R$)</span>
+                        <input name="valor" type="number" step="0.01" min="0.01" required placeholder="50,00">
+                    </label>
+                    <label>
+                        <span>Tipo</span>
+                        <select name="tipo" id="campo-tipo" required>
+                            <option value="DESPESA">Despesa</option>
+                            <option value="RECEITA">Receita</option>
+                        </select>
+                    </label>
+                </div>
+                <label>
+                    <span>Categoria</span>
+                    <select name="categoria" id="campo-categoria" required></select>
+                </label>
+                <button type="submit" class="botao botao--bloco">Registrar lançamento</button>
+                <p id="erro-formulario" class="erro" hidden></p>
+            </form>
+        </section>
+
+        <section class="painel" aria-label="Configurações">
+            <div class="painel-cabecalho">
+                <h2>Configurações</h2>
+                <span class="etiqueta">Salário</span>
+            </div>
+            <form id="form-salario" class="formulario">
+                <label>
+                    <span>Salário mensal (R$)</span>
+                    <input name="salario" id="campo-salario" type="number" step="0.01" min="0.01" required placeholder="4500,00">
+                </label>
+                <button type="submit" class="botao botao--bloco">Atualizar salário</button>
+                <p id="erro-salario" class="erro" hidden></p>
+            </form>
+            <p class="nota">Alterar o salário atualiza o lançamento de salário existente
+               em vez de criar outro, então o saldo não é somado duas vezes.</p>
+        </section>
+
+        </div>
+
+    </div>
+
+    <section class="painel" aria-label="Transações">
+        <div class="painel-cabecalho">
+            <h2>Transações</h2>
+            <div class="filtros" id="filtros" role="group" aria-label="Filtrar por tipo">
+                <button type="button" class="ativo" data-filtro="TODOS">Todas</button>
+                <button type="button" data-filtro="RECEITA">Receitas</button>
+                <button type="button" data-filtro="DESPESA">Despesas</button>
+            </div>
+        </div>
+        <div class="tabela-area">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th scope="col">Descrição</th>
+                    <th scope="col">Categoria</th>
+                    <th scope="col">Data</th>
+                    <th scope="col" class="direita">Valor</th>
+                </tr>
+                </thead>
+                <tbody id="corpo-tabela"></tbody>
+            </table>
+            <div id="tabela-vazia" class="vazio" hidden>
+                <p>Nenhuma transação registrada.</p>
+                <span>Use o assistente ou o formulário ao lado para criar a primeira.</span>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="rodape">
+    <span>Spring Boot · Spring AI · Tool Calling</span>
+    <a href="/swagger-ui.html" target="_blank" rel="noopener">Documentação da API</a>
+</footer>
+
+<div id="notificacao" class="notificacao" role="status" aria-live="polite" hidden></div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
