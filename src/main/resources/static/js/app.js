@@ -212,6 +212,11 @@ async function carregarCategorias() {
     const resposta = await fetch('/api/categorias');
     estado.categorias = await resposta.json();
     preencherCategorias(el('campo-tipo').value);
+    // O painel "Ganhei dinheiro" so registra entradas, entao lista apenas
+    // categorias de receita.
+    el('campo-entrada-categoria').innerHTML = estado.categorias.receitas
+        .map((c) => `<option value="${c.valor}">${c.rotulo}</option>`)
+        .join('');
 }
 
 function preencherCategorias(tipo, selecionada = null) {
@@ -547,6 +552,152 @@ el('form-salario').addEventListener('submit', async (e) => {
     }
 });
 
+/* -------------------------------------------------- entrada de dinheiro */
+
+// Caminho direto, sem IA: o usuario registra o que entrou na conta.
+el('form-entrada').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const erro = el('erro-entrada');
+    const botao = form.querySelector('button[type=submit]');
+    const dados = Object.fromEntries(new FormData(form));
+    erro.hidden = true;
+    botao.disabled = true;
+
+    try {
+        const resposta = await fetch('/api/transacoes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                descricao: dados.descricao,
+                valor: Number(dados.valor),
+                categoria: dados.categoria,
+                tipo: 'RECEITA'
+            })
+        });
+        if (!resposta.ok) {
+            erro.textContent = await lerErro(resposta);
+            erro.hidden = false;
+            return;
+        }
+        const criada = await resposta.json();
+        form.reset();
+        await carregarTransacoes();
+        renderizarTabela(criada.id);
+        notificar(`Entrada de ${MOEDA.format(Number(criada.valor))} registrada.`, 'ok');
+    } catch {
+        erro.textContent = 'Não foi possível falar com o servidor.';
+        erro.hidden = false;
+    } finally {
+        botao.disabled = false;
+    }
+});
+
+/* ------------------------------------------------------- investimentos */
+
+// O porquinho tem total proprio e nao entra no saldo do orcamento.
+async function carregarInvestimentos(idDestaque = null) {
+    const [listaResp, resumoResp] = await Promise.all([
+        fetch('/api/investimentos'),
+        fetch('/api/investimentos/resumo')
+    ]);
+    const lista = await listaResp.json();
+    const resumo = await resumoResp.json();
+
+    el('valor-porquinho').textContent = MOEDA.format(Number(resumo.total));
+    el('legenda-porquinho').textContent = lista.length
+        ? `${MOEDA.format(Number(resumo.aportes))} guardados · ${MOEDA.format(Number(resumo.retiradas))} retirados`
+        : 'Separado do saldo do orçamento';
+
+    const corpo = el('corpo-investimentos');
+    corpo.innerHTML = '';
+    el('investimentos-vazio').hidden = lista.length > 0;
+
+    [...lista].sort((a, b) => b.id - a.id).forEach((i) => {
+        const aporte = i.tipo === 'APORTE';
+        const tr = document.createElement('tr');
+        if (i.id === idDestaque) tr.className = 'linha-nova';
+
+        const tdDesc = document.createElement('td');
+        const wrap = document.createElement('div');
+        wrap.className = 'celula-descricao';
+        const marca = document.createElement('span');
+        marca.className = `indicador indicador--${aporte ? 'aporte' : 'retirada'}`;
+        marca.textContent = aporte ? '↑' : '↓';
+        marca.setAttribute('aria-label', aporte ? 'Guardado' : 'Retirado');
+        const nome = document.createElement('span');
+        nome.textContent = i.descricao;
+        wrap.append(marca, nome);
+        tdDesc.appendChild(wrap);
+
+        const tdTipo = document.createElement('td');
+        const chip = document.createElement('span');
+        chip.className = 'marca-categoria';
+        chip.textContent = aporte ? 'Guardado' : 'Retirado';
+        tdTipo.appendChild(chip);
+
+        const tdData = document.createElement('td');
+        tdData.className = 'celula-data';
+        tdData.textContent = DATA.format(new Date(i.dataHora));
+
+        const tdValor = document.createElement('td');
+        tdValor.className = `direita celula-valor celula-valor--${aporte ? 'aporte' : 'retirada'}`;
+        tdValor.textContent = (aporte ? '+' : '−') + ' ' + MOEDA.format(Number(i.valor));
+
+        tr.append(tdDesc, tdTipo, tdData, tdValor);
+        corpo.appendChild(tr);
+    });
+}
+
+el('form-investimento').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const erro = el('erro-investimento');
+    const botao = form.querySelector('button[type=submit]');
+    const dados = Object.fromEntries(new FormData(form));
+    erro.hidden = true;
+    botao.disabled = true;
+
+    try {
+        const resposta = await fetch('/api/investimentos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                descricao: dados.descricao,
+                valor: Number(dados.valor),
+                tipo: dados.tipo
+            })
+        });
+        if (!resposta.ok) {
+            erro.textContent = await lerErro(resposta);
+            erro.hidden = false;
+            return;
+        }
+        const criado = await resposta.json();
+        form.reset();
+        await carregarInvestimentos(criado.id);
+        notificar(dados.tipo === 'APORTE' ? 'Valor guardado no porquinho.' : 'Retirada registrada.', 'ok');
+    } catch {
+        erro.textContent = 'Não foi possível falar com o servidor.';
+        erro.hidden = false;
+    } finally {
+        botao.disabled = false;
+    }
+});
+
+el('abas').addEventListener('click', (e) => {
+    const botao = e.target.closest('button');
+    if (!botao) return;
+    const aba = botao.dataset.aba;
+    el('abas').querySelectorAll('button').forEach((b) => {
+        const ativa = b === botao;
+        b.classList.toggle('ativa', ativa);
+        b.setAttribute('aria-selected', String(ativa));
+    });
+    el('painel-transacoes').hidden = aba !== 'transacoes';
+    el('painel-investimentos').hidden = aba !== 'investimentos';
+});
+
 /* ------------------------------------------------------------------- inicio */
 
 if (!Reconhecimento) {
@@ -556,5 +707,5 @@ if (!Reconhecimento) {
 // A ordem importa: categorias antes das transacoes, senao a tabela renderiza
 // sem conseguir traduzir o valor da categoria para o rotulo exibido.
 Promise.all([carregarStatus(), carregarCategorias(), carregarConfiguracao()])
-    .then(carregarTransacoes)
+    .then(() => Promise.all([carregarTransacoes(), carregarInvestimentos()]))
     .catch(() => notificar('Falha ao carregar os dados iniciais.', 'erro'));

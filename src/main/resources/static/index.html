@@ -177,6 +177,32 @@
             </form>
         </section>
 
+        <section class="painel" aria-label="Entrada de dinheiro">
+            <div class="painel-cabecalho">
+                <h2>Ganhei dinheiro</h2>
+                <span class="etiqueta">Entrada</span>
+            </div>
+            <p class="nota nota--topo">Registre dinheiro que entrou na conta, sem passar pelo assistente.</p>
+            <form id="form-entrada" class="formulario">
+                <label>
+                    <span>De onde veio</span>
+                    <input name="descricao" type="text" required placeholder="Presente da minha avó">
+                </label>
+                <div class="formulario-par">
+                    <label>
+                        <span>Valor (R$)</span>
+                        <input name="valor" type="number" step="0.01" min="0.01" required placeholder="50,00">
+                    </label>
+                    <label>
+                        <span>Origem</span>
+                        <select name="categoria" id="campo-entrada-categoria" required></select>
+                    </label>
+                </div>
+                <button type="submit" class="botao botao--bloco botao--verde">Adicionar à conta</button>
+                <p id="erro-entrada" class="erro" hidden></p>
+            </form>
+        </section>
+
         <section class="painel" aria-label="Configurações">
             <div class="painel-cabecalho">
                 <h2>Configurações</h2>
@@ -198,7 +224,13 @@
 
     </div>
 
-    <section class="painel" aria-label="Transações">
+    <section class="painel" aria-label="Histórico">
+        <div class="abas" id="abas" role="tablist">
+            <button type="button" class="ativa" data-aba="transacoes" role="tab" aria-selected="true">Transações</button>
+            <button type="button" data-aba="investimentos" role="tab" aria-selected="false">Investimentos</button>
+        </div>
+
+        <div id="painel-transacoes" role="tabpanel">
         <div class="painel-cabecalho">
             <h2>Transações</h2>
             <div class="filtros" id="filtros" role="group" aria-label="Filtrar por tipo">
@@ -222,6 +254,61 @@
             <div id="tabela-vazia" class="vazio" hidden>
                 <p>Nenhuma transação registrada.</p>
                 <span>Use o assistente ou o formulário ao lado para criar a primeira.</span>
+            </div>
+        </div>
+        </div>
+
+        <div id="painel-investimentos" role="tabpanel" hidden>
+            <div class="porquinho">
+                <div class="porquinho-icone" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 10c0-3.3-3.1-6-7-6s-7 2.7-7 6c0 1.6.7 3 1.9 4.1V17a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-.6c.6.1 1.2.2 1.9.2s1.3-.1 1.9-.2v.6a1 1 0 0 0 1 1H17a1 1 0 0 0 1-1v-2.9c.6-.6 1-1.3 1-2.1z"/>
+                        <path d="M9 4.5 10 2M15.5 10h.01M3 11h1.5"/>
+                    </svg>
+                </div>
+                <div class="porquinho-info">
+                    <span class="cartao-rotulo">Guardado no porquinho</span>
+                    <strong id="valor-porquinho" class="cartao-valor">R$ 0,00</strong>
+                    <span id="legenda-porquinho" class="cartao-legenda">Separado do saldo do orçamento</span>
+                </div>
+            </div>
+
+            <form id="form-investimento" class="formulario formulario--linha">
+                <label>
+                    <span>Descrição</span>
+                    <input name="descricao" type="text" required placeholder="Guardando para a viagem">
+                </label>
+                <label class="campo-curto">
+                    <span>Valor (R$)</span>
+                    <input name="valor" type="number" step="0.01" min="0.01" required placeholder="100,00">
+                </label>
+                <label class="campo-curto">
+                    <span>Movimento</span>
+                    <select name="tipo" required>
+                        <option value="APORTE">Guardar</option>
+                        <option value="RETIRADA">Retirar</option>
+                    </select>
+                </label>
+                <button type="submit" class="botao botao--primario botao--alinhado">Registrar</button>
+            </form>
+            <p id="erro-investimento" class="erro" hidden></p>
+
+            <div class="tabela-area">
+                <table class="tabela">
+                    <thead>
+                    <tr>
+                        <th scope="col">Descrição</th>
+                        <th scope="col">Movimento</th>
+                        <th scope="col">Data</th>
+                        <th scope="col" class="direita">Valor</th>
+                    </tr>
+                    </thead>
+                    <tbody id="corpo-investimentos"></tbody>
+                </table>
+                <div id="investimentos-vazio" class="vazio" hidden>
+                    <p>Seu porquinho está vazio.</p>
+                    <span>Registre o primeiro valor guardado acima.</span>
+                </div>
             </div>
         </div>
     </section>
