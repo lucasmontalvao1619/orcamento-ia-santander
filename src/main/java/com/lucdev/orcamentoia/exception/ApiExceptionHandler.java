@@ -7,6 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.util.stream.Collectors;
 
@@ -35,6 +36,16 @@ public class ApiExceptionHandler {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
                 "O provedor de IA recusou a requisicao. Verifique a chave de API e o modelo configurado.");
         problema.setTitle("Falha no provedor de IA");
+        return problema;
+    }
+
+    // O Ollama roda como processo separado. Se ele nao estiver no ar, a chamada
+    // falha na conexao e nao como erro de IA, entao precisa do proprio handler.
+    @ExceptionHandler(ResourceAccessException.class)
+    public ProblemDetail provedorLocalForaDoAr(ResourceAccessException e) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Nao foi possivel conectar ao modelo local. Verifique se o Ollama esta rodando (ollama serve).");
+        problema.setTitle("Modelo local indisponivel");
         return problema;
     }
 
