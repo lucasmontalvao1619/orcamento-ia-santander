@@ -55,7 +55,11 @@ public class AssistenteController {
         boolean ia = !usaOpenAi || chaveOk;
         String mensagem;
         if (!ia) {
-            mensagem = "Informe sua chave da OpenAI em Configuracoes para usar o assistente.";
+            // Sem chave o assistente NAO esta indisponivel: o interpretador
+            // proprio atende os comandos escritos. Dizer o contrario esconderia
+            // um recurso que funciona.
+            mensagem = "Assistente em modo local: os comandos escritos funcionam sem custo. "
+                    + "A voz e as frases livres exigem uma chave da OpenAI em Configuracoes.";
         } else if (usaOpenAi) {
             mensagem = "Assistente pronto (OpenAI).";
         } else {

@@ -38,10 +38,11 @@ class AssistenteSemChaveTest {
     @MockitoBean
     private ConfiguracaoService configuracaoService;
 
-    // Sem chave no ambiente e sem chave guardada, a interface precisa saber que
-    // o assistente esta indisponivel — e para onde mandar o usuario.
+    // Sem chave, o assistente NAO esta indisponivel: o interpretador proprio
+    // atende os comandos escritos. A mensagem precisa dizer o que realmente
+    // falta — voz e frases livres — em vez de bloquear o que funciona.
     @Test
-    void avisaQueFaltaAChaveEApontaOndeConfigurar() throws Exception {
+    void semChaveOAssistenteSegueUtilEAMensagemDizOQueFalta() throws Exception {
         when(configuracaoService.obter()).thenReturn(new Configuracao());
 
         mockMvc.perform(get("/api/assistente/status"))
@@ -49,6 +50,8 @@ class AssistenteSemChaveTest {
                 .andExpect(jsonPath("$.provedor").value("openai"))
                 .andExpect(jsonPath("$.iaConfigurada").value(false))
                 .andExpect(jsonPath("$.mensagem").value(
-                        org.hamcrest.Matchers.containsString("Configuracoes")));
+                        org.hamcrest.Matchers.containsString("modo local")))
+                .andExpect(jsonPath("$.mensagem").value(
+                        org.hamcrest.Matchers.containsString("voz")));
     }
 }

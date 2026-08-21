@@ -124,11 +124,17 @@ function adicionarCarregando() {
 
 function definirOcupado(ocupado) {
     estado.ocupado = ocupado;
-    $microfone.disabled = ocupado || !estado.iaConfigurada;
-    $entradaTexto.disabled = ocupado || !estado.iaConfigurada;
+
+    // O comando ESCRITO nunca depende de chave: sem ela, o interpretador
+    // proprio atende. Bloquear o campo aqui esconderia um recurso que funciona.
+    $entradaTexto.disabled = ocupado;
     document.querySelectorAll('#sugestoes button, #form-texto button')
-        .forEach((b) => { b.disabled = ocupado || !estado.iaConfigurada; });
+        .forEach((b) => { b.disabled = ocupado; });
+
+    // A VOZ, sim, depende: a transcricao e feita pela OpenAI.
+    $microfone.disabled = ocupado;
     $microfone.classList.toggle('ocupado', ocupado);
+    $microfone.classList.toggle('sem-chave', !estado.iaConfigurada);
 }
 
 /* -------------------------------------------------------------- dados / API */
@@ -146,6 +152,14 @@ async function carregarStatus() {
         // sem isto, continuava na tela depois de a chave ser configurada.
         el('aviso').hidden = status.iaConfigurada;
 
+        // O cartao do microfone precisa dizer o que acontece ao tocar nele.
+        const dica = el('dica-microfone');
+        if (dica) {
+            dica.textContent = status.iaConfigurada
+                ? 'Ex.: “Gastei 50 reais com almoço na categoria alimentação”'
+                : 'A voz precisa da chave da OpenAI. Toque para configurar.';
+        }
+
         if (status.iaConfigurada) {
             pilula.className = 'pilula pilula--ok';
             // O rotulo segue o provedor real informado pelo backend.
@@ -153,7 +167,7 @@ async function carregarStatus() {
         } else {
             pilula.className = 'pilula pilula--alerta';
             texto.textContent = 'IA não configurada';
-            el('aviso-texto').textContent = ' ' + status.mensagem + ' ';
+            el('aviso-texto').textContent = '';
             el('aviso').hidden = false;
         }
         definirOcupado(false);
