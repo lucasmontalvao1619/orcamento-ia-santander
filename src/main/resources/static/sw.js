@@ -1,23 +1,25 @@
 /*
- * Service worker do Orcamento IA.
+ * Service worker do Fast Finance Helper.
  *
- * Guarda apenas o "casco" da interface (HTML, CSS, JS e icones) para o app
- * abrir instantaneamente e nao ficar em branco quando a rede oscila.
+ * Ele existe por UM motivo: permitir instalar o aplicativo na tela inicial do
+ * celular. Nada mais.
  *
- * As chamadas a /api NAO sao cacheadas de proposito: saldo e transacoes
- * precisam ser sempre os do servidor. Mostrar um saldo velho de cache seria
- * pior do que mostrar um erro de conexao.
+ * Em especial, ele NAO guarda a interface em cache — e isso e deliberado.
+ *
+ * A aplicacao so funciona com o servidor rodando no computador: com o servidor
+ * fora do ar, uma interface em cache abriria uma tela bonita que nao consegue
+ * fazer nada. Em troca desse ganho inexistente, o cache trouxe problema real
+ * duas vezes: uma mensagem de erro ja removida do codigo reapareceu na tela, e
+ * abas novas nao apareciam mesmo com o servidor servindo o HTML novo. As duas
+ * vezes o sintoma foi o mesmo: o codigo estava certo e a tela estava velha.
+ *
+ * Guardar so os icones e o manifest, que sao o que o navegador pede para
+ * instalar, elimina a classe inteira de bug.
  */
 
-// Trocar esta versao a cada mudanca na interface: o cache antigo e apagado no
-// 'activate', e sem isso o navegador continua servindo o HTML e o JS antigos.
-// Ja aconteceu: uma mensagem de erro de uma versao anterior reapareceu na tela
-// depois de o codigo dela ter sido removido.
-const VERSAO = 'fast-finance-v2';
-const CASCO = [
-    '/',
-    '/css/estilo.css',
-    '/js/app.js',
+const VERSAO = 'fast-finance-v3-sem-cache-de-interface';
+
+const PARA_INSTALAR = [
     '/manifest.webmanifest',
     '/icones/icone-192.png',
     '/icones/icone-512.png'
@@ -26,13 +28,14 @@ const CASCO = [
 self.addEventListener('install', (evento) => {
     evento.waitUntil(
         caches.open(VERSAO)
-            .then((cache) => cache.addAll(CASCO))
+            .then((cache) => cache.addAll(PARA_INSTALAR))
             .then(() => self.skipWaiting())
     );
 });
 
 self.addEventListener('activate', (evento) => {
-    // Remove caches de versoes anteriores, senao o app fica preso num CSS antigo.
+    // Apaga TUDO que ficou de versoes anteriores, inclusive a interface que
+    // versoes antigas guardavam.
     evento.waitUntil(
         caches.keys()
             .then((chaves) => Promise.all(
@@ -44,19 +47,16 @@ self.addEventListener('activate', (evento) => {
 self.addEventListener('fetch', (evento) => {
     const url = new URL(evento.request.url);
 
-    if (evento.request.method !== 'GET' || url.pathname.startsWith('/api')) {
+    // Icones e manifest podem vir do cache: sao estaveis e o navegador os pede
+    // durante a instalacao, as vezes com a aba fechada.
+    const instalavel = PARA_INSTALAR.some((caminho) => url.pathname === caminho);
+    if (evento.request.method === 'GET' && instalavel) {
+        evento.respondWith(
+            caches.match(evento.request).then((guardado) => guardado || fetch(evento.request))
+        );
         return;
     }
 
-    // Rede primeiro, cache como reserva: assim uma alteracao no CSS ou no JS
-    // aparece na proxima visita, sem esperar o cache expirar.
-    evento.respondWith(
-        fetch(evento.request)
-            .then((resposta) => {
-                const copia = resposta.clone();
-                caches.open(VERSAO).then((cache) => cache.put(evento.request, copia));
-                return resposta;
-            })
-            .catch(() => caches.match(evento.request).then((r) => r || caches.match('/')))
-    );
+    // Todo o resto — HTML, JS, CSS e a API — vai direto para o servidor, sempre.
+    // Sem interceptar, o navegador cuida do restante.
 });

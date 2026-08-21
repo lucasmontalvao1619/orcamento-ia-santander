@@ -92,9 +92,18 @@ envia sinal: a regra anterior matava o app com o usuario na frente dele.
 **Binario nao entra no Git.** Atalhos saem de `scripts/gerar-atalhos.sh`,
 executaveis do `jpackage`. O repositorio guarda a receita, nao o produto.
 
-**Trocar a versao do cache em `sw.js` a cada mudanca na interface.** Sem isso o
-navegador serve o HTML e o JS antigos — uma mensagem de erro ja removida do
-codigo reapareceu na tela por causa disso.
+**O service worker NAO guarda a interface em cache.** Ele existe so para o app
+poder ser instalado na tela inicial do celular, e guarda apenas icones e
+manifest.
+
+A regra anterior era "trocar a versao do cache a cada mudanca na interface".
+Ela falhou duas vezes, das duas por esquecimento: uma mensagem de erro ja
+removida do codigo reapareceu na tela, e abas novas nao apareciam com o servidor
+ja servindo o HTML novo. Uma regra que depende de lembrar nao e uma regra.
+
+E o cache da interface nunca teve valor aqui: a aplicacao so funciona com o
+servidor rodando, entao uma interface guardada abriria uma tela que nao faz
+nada. Nao adicione cache de HTML, JS ou CSS.
 
 ---
 
