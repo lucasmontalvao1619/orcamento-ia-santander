@@ -3,6 +3,7 @@ package com.lucdev.orcamentoia.controller;
 import com.lucdev.orcamentoia.dto.ComandoResponse;
 import com.lucdev.orcamentoia.dto.StatusResponse;
 import com.lucdev.orcamentoia.service.AssistenteService;
+import com.lucdev.orcamentoia.service.ConfiguracaoService;
 import com.lucdev.orcamentoia.service.TranscricaoService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -23,17 +24,20 @@ public class AssistenteController {
 
     private final TranscricaoService transcricaoService;
     private final AssistenteService assistenteService;
+    private final ConfiguracaoService configuracaoService;
     private final String provedor;
-    private final String chaveOpenAi;
+    private final String chaveDoAmbiente;
 
     public AssistenteController(TranscricaoService transcricaoService,
                                 AssistenteService assistenteService,
-                                @Value("${spring.ai.model.chat:ollama}") String provedor,
-                                @Value("${spring.ai.openai.api-key:}") String chaveOpenAi) {
+                                ConfiguracaoService configuracaoService,
+                                @Value("${spring.ai.model.chat:openai}") String provedor,
+                                @Value("${spring.ai.openai.api-key:}") String chaveDoAmbiente) {
         this.transcricaoService = transcricaoService;
         this.assistenteService = assistenteService;
+        this.configuracaoService = configuracaoService;
         this.provedor = provedor;
-        this.chaveOpenAi = chaveOpenAi;
+        this.chaveDoAmbiente = chaveDoAmbiente;
     }
 
     // A interface chama este endpoint ao abrir. Sem ele o usuario so descobriria
@@ -42,22 +46,29 @@ public class AssistenteController {
     @GetMapping("/status")
     public ResponseEntity<StatusResponse> status() {
         boolean usaOpenAi = "openai".equalsIgnoreCase(provedor);
-        boolean chaveOk = chaveOpenAi != null
-                && !chaveOpenAi.isBlank()
-                && !CHAVE_AUSENTE.equals(chaveOpenAi);
 
-        boolean ia = usaOpenAi ? chaveOk : true;
+        // A chave pode vir do ambiente ou ter sido informada na interface. A
+        // segunda e o caminho normal: o aplicativo empacotado nao tem variavel
+        // de ambiente para configurar.
+        boolean chaveOk = configuracaoService.obter().temChaveOpenAi() || chaveDeAmbienteValida();
+
+        boolean ia = !usaOpenAi || chaveOk;
         String mensagem;
         if (!ia) {
-            mensagem = "Defina a variavel de ambiente OPENAI_API_KEY para habilitar o assistente.";
+            mensagem = "Informe sua chave da OpenAI em Configuracoes para usar o assistente.";
         } else if (usaOpenAi) {
             mensagem = "Assistente pronto (OpenAI).";
         } else {
             mensagem = "Assistente pronto (Ollama local). Certifique-se de que o Ollama esta rodando.";
         }
-        // A transcricao no servidor e sempre da OpenAI, independente do provedor
-        // de chat, porque o Ollama nao transcreve audio.
+        // A transcricao de voz e sempre da OpenAI: depende da mesma chave.
         return ResponseEntity.ok(new StatusResponse(ia, chaveOk, provedor, mensagem));
+    }
+
+    private boolean chaveDeAmbienteValida() {
+        return chaveDoAmbiente != null
+                && !chaveDoAmbiente.isBlank()
+                && !CHAVE_AUSENTE.equals(chaveDoAmbiente);
     }
 
     @PostMapping(value = "/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

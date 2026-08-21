@@ -3,10 +3,8 @@
 #
 # Ha dois caminhos, e o script escolhe sozinho:
 #
-#   1. Docker      nao exige Java, Maven nem Ollama na maquina. E o caminho de
-#                  quem so recebeu o zip, e por isso vem primeiro.
-#   2. Local       usado quando o Docker nao esta disponivel mas a maquina ja
-#                  tem Java e Ollama. Faz exatamente a mesma coisa, sem container.
+#   1. Local       quando a maquina tem Java. E o caminho direto.
+#   2. Docker      quando nao tem: funciona sem instalar nada.
 #
 # A escolha automatica existe porque "o Docker nao esta rodando" e uma resposta
 # inutil para quem tem todas as pecas instaladas e so queria abrir o aplicativo.
@@ -53,26 +51,10 @@ if curl -s -o /dev/null -m 2 "$URL/api/sobre" 2>/dev/null; then
 fi
 
 # --- Caminho 1: local, sem container ----------------------------------------
-# O local vem primeiro de proposito. Dentro de um container o modelo roda so em
-# CPU: no macOS, a mesma pergunta leva cerca de 2 minutos contra poucos segundos
-# rodando direto na maquina (medido). Tendo Java e Ollama instalados, usar o
-# container seria escolher a versao lenta sem motivo.
-if command -v java > /dev/null 2>&1 && command -v ollama > /dev/null 2>&1; then
-    echo "Subindo em modo local (mais rapido: usa a placa de video da maquina)."
+# O local vem primeiro: sobe em segundos e nao depende de o Docker estar aberto.
+if command -v java > /dev/null 2>&1; then
+    echo "Subindo em modo local."
     echo ""
-
-    # O Ollama e um processo a parte: sem ele no ar, o assistente responde 503.
-    if ! curl -s -o /dev/null -m 3 http://localhost:11434/api/tags 2>/dev/null; then
-        echo "Iniciando o Ollama..."
-        nohup ollama serve > /dev/null 2>&1 &
-        until curl -s -o /dev/null -m 2 http://localhost:11434/api/tags 2>/dev/null; do sleep 2; done
-    fi
-
-    MODELO="${OLLAMA_MODEL:-qwen2.5:3b}"
-    if ! ollama list 2>/dev/null | grep -q "^$MODELO"; then
-        echo "Baixando o modelo $MODELO (~1,9 GB, apenas na primeira vez)..."
-        ollama pull "$MODELO"
-    fi
 
     # Abre o navegador de um processo paralelo: o Maven fica em primeiro plano
     # para os logs aparecerem e o Ctrl+C encerrar a aplicacao.
@@ -83,11 +65,9 @@ fi
 
 
 # --- Caminho 2: Docker ------------------------------------------------------
-# Para quem nao tem Java nem Ollama: funciona sem instalar nada, ao custo de
-# respostas bem mais lentas.
+# Para quem nao tem Java instalado: funciona sem instalar nada.
 if docker info > /dev/null 2>&1; then
     echo "Iniciando o Fast Finance Helper (Docker)..."
-    echo "Na primeira vez o modelo de IA e baixado (~1,9 GB); pode levar alguns minutos."
     echo ""
     docker compose -f docker/docker-compose.yml up --build -d
 
@@ -106,5 +86,5 @@ else
     echo "Abra o Docker Desktop e execute este arquivo de novo."
 fi
 echo ""
-echo "Alternativa sem Docker: instale o Java 17+ e o Ollama (brew install ollama)."
+echo "Alternativa sem Docker: instale o Java 17 ou mais novo."
 exit 1

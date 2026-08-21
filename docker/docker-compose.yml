@@ -1,62 +1,21 @@
-# Sobe a aplicacao inteira com um comando: o modelo de IA, o download dele e a
-# API. Quem for usar precisa apenas do Docker instalado — nada de Java, Maven
-# ou Ollama na maquina.
-# O nome do projeto e fixo de proposito. Sem esta linha o Compose usaria o nome
-# da pasta onde este arquivo esta, e os volumes passariam a se chamar
-# "docker_dados-orcamento" — mover ou renomear a pasta faria os lancamentos
-# desaparecerem, porque o volume antigo continuaria existindo com outro nome.
-name: orcamento-ia
+# Sobe a aplicacao num container. Nao ha mais servico de modelo local: a IA e da
+# OpenAI, acionada pela chave que o usuario informa na propria interface.
+#
+# Isso reduziu o pacote de ~6 GB para poucas centenas de MB e eliminou a
+# lentidao do modelo em CPU dentro do container.
+name: fast-finance-helper
 
 services:
 
-  # O modelo de linguagem, rodando localmente.
-  ollama:
-    image: ollama/ollama:latest
-    container_name: orcamento-ollama
-    volumes:
-      # O modelo baixado fica no volume: o download de ~1,9 GB acontece uma vez
-      # so, e nao se repete a cada 'docker compose up'.
-      - modelos-ollama:/root/.ollama
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 10s
-    restart: unless-stopped
-
-  # Servico de uma execucao so: baixa o modelo e encerra. A aplicacao espera
-  # ele terminar, para nunca subir com o assistente quebrado.
-  baixar-modelo:
-    image: ollama/ollama:latest
-    container_name: orcamento-baixar-modelo
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      OLLAMA_HOST: http://ollama:11434
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "echo 'Baixando o modelo de IA (~1,9 GB, apenas na primeira vez)...';
-       ollama pull qwen2.5:3b && echo 'Modelo pronto.'"
-    restart: "no"
-
-  # A API e a interface web.
   app:
     # O contexto e a raiz do projeto (uma pasta acima): e la que estao o pom.xml
     # e o src que o Dockerfile copia.
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: orcamento-app
-    depends_on:
-      baixar-modelo:
-        condition: service_completed_successfully
+    container_name: fast-finance-helper
     ports:
       - "8080:8080"
-    environment:
-      OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: qwen2.5:3b
     volumes:
       # Os lancamentos ficam neste volume e sobrevivem ao restart. Como o volume
       # nasce vazio, cada pessoa comeca com o orcamento zerado.
@@ -64,5 +23,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  modelos-ollama:
   dados-orcamento:

@@ -1,15 +1,15 @@
 package com.lucdev.orcamentoia.controller;
 
+import com.lucdev.orcamentoia.model.Configuracao;
 import com.lucdev.orcamentoia.service.AssistenteService;
+import com.lucdev.orcamentoia.service.ConfiguracaoService;
 import com.lucdev.orcamentoia.service.TranscricaoService;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.retry.TransientAiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.ResourceAccessException;
@@ -35,6 +35,9 @@ class AssistenteControllerTest {
 
     @MockitoBean
     private TranscricaoService transcricaoService;
+
+    @MockitoBean
+    private ConfiguracaoService configuracaoService;
 
     @Test
     void processaUmComandoDeTexto() throws Exception {
@@ -85,8 +88,10 @@ class AssistenteControllerTest {
                 .andExpect(jsonPath("$.title").value("Provedor de IA indisponivel"));
     }
 
+    // Vale para qualquer provedor fora do ar, inclusive rede caida ao falar com
+    // a OpenAI.
     @Test
-    void ollamaForaDoArViraServiceUnavailable() throws Exception {
+    void provedorForaDoArViraServiceUnavailable() throws Exception {
         when(assistenteService.processarComando(any()))
                 .thenThrow(new ResourceAccessException("Connection refused"));
 
@@ -97,39 +102,18 @@ class AssistenteControllerTest {
                         org.hamcrest.Matchers.containsString("ollama serve")));
     }
 
-    // O Ollama roda local e nao usa chave, entao o assistente esta utilizavel
-    // mesmo sem OPENAI_API_KEY nenhuma no ambiente.
+    // A chave informada na interface e o caminho normal: o aplicativo empacotado
+    // nao tem variavel de ambiente para configurar.
     @Test
-    void statusComOllamaNaoExigeChave() throws Exception {
+    void statusReconheceAChaveInformadaNaInterface() throws Exception {
+        Configuracao comChave = new Configuracao();
+        comChave.setChaveOpenAi("sk-teste");
+        when(configuracaoService.obter()).thenReturn(comChave);
+
         mockMvc.perform(get("/api/assistente/status"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.provedor").value("ollama"))
                 .andExpect(jsonPath("$.iaConfigurada").value(true));
 
         verify(assistenteService, never()).processarComando(any());
-    }
-
-    @Nested
-    @TestPropertySource(properties = {
-            "spring.ai.model.chat=openai",
-            "spring.ai.openai.api-key=chave-nao-configurada"
-    })
-    class QuandoOProvedorEOpenAiSemChave {
-
-        @Autowired
-        private MockMvc mockMvc;
-
-        // O valor default de application.properties conta como chave ausente:
-        // sem isto a interface diria que o assistente esta pronto e o usuario
-        // so descobriria o contrario ao mandar o primeiro comando.
-        @Test
-        void statusAvisaQueFaltaAChave() throws Exception {
-            mockMvc.perform(get("/api/assistente/status"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.provedor").value("openai"))
-                    .andExpect(jsonPath("$.iaConfigurada").value(false))
-                    .andExpect(jsonPath("$.mensagem").value(
-                            org.hamcrest.Matchers.containsString("OPENAI_API_KEY")));
-        }
     }
 }

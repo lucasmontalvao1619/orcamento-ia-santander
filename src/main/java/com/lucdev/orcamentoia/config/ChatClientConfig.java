@@ -82,13 +82,20 @@ public class ChatClientConfig {
      * e o comportamento correto. Com um modelo maior (AI_PROVIDER=openai, ou
      * um Ollama mais capaz) vale ligar: ASSISTENTE_MEMORIA=true.
      */
+    // Publico porque o cliente montado em tempo de execucao — com a chave que o
+    // usuario informou na interface — precisa do mesmo prompt. Duas copias do
+    // prompt divergiriam no primeiro ajuste.
+    public static String promptDoSistema() {
+        return MODELO_PROMPT.formatted(
+                listar(Arrays.stream(CategoriaDespesa.values()).map(CategoriaDespesa::getValor).toList()),
+                listar(Arrays.stream(CategoriaReceita.values()).map(CategoriaReceita::getValor).toList()));
+    }
+
     @Bean
     public ChatClient chatClient(ChatClient.Builder builder,
                                  ChatMemory chatMemory,
                                  @Value("${assistente.memoria-ativa:false}") boolean memoriaAtiva) {
-        String prompt = MODELO_PROMPT.formatted(
-                listar(Arrays.stream(CategoriaDespesa.values()).map(CategoriaDespesa::getValor).toList()),
-                listar(Arrays.stream(CategoriaReceita.values()).map(CategoriaReceita::getValor).toList()));
+        String prompt = promptDoSistema();
 
         ChatClient.Builder configurado = builder.defaultSystem(prompt);
         if (memoriaAtiva) {
@@ -98,7 +105,7 @@ public class ChatClientConfig {
         return configurado.build();
     }
 
-    private String listar(java.util.List<String> valores) {
+    private static String listar(java.util.List<String> valores) {
         return valores.stream().collect(Collectors.joining(", "));
     }
 }

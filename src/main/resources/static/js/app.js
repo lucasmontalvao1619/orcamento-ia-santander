@@ -142,6 +142,10 @@ async function carregarStatus() {
 
         const pilula = el('pilula-status');
         const texto = el('texto-status');
+        // Esconder aqui e obrigatorio: o aviso e mostrado no ramo de baixo e,
+        // sem isto, continuava na tela depois de a chave ser configurada.
+        el('aviso').hidden = status.iaConfigurada;
+
         if (status.iaConfigurada) {
             pilula.className = 'pilula pilula--ok';
             // O rotulo segue o provedor real informado pelo backend.
@@ -494,15 +498,24 @@ $microfone.addEventListener('click', async () => {
         return;
     }
 
+    // Sem chave da OpenAI o assistente nao responde, e o microfone nao teria
+    // para onde mandar o que fosse ditado. Dizer "configure a chave" e apontar
+    // ONDE evita o clique que nao faz nada.
+    if (!estado.iaConfigurada) {
+        notificar('O assistente precisa da sua chave da OpenAI. Configure em Configurações › Voz.', 'erro');
+        el('modal-config').hidden = false;
+        setTimeout(() => el('campo-chave-openai').focus(), 80);
+        return;
+    }
+
     try {
-        // Preferimos o ditado do navegador: nao gasta credito de transcricao e
-        // funciona so com a chave da Anthropic.
+        // Preferimos o ditado do navegador: nao gasta credito de transcricao.
         if (Reconhecimento) {
             reconhecimentoAtivo = iniciarDitadoNavegador();
         } else if (estado.transcricaoServidor) {
             await iniciarGravacao();
         } else {
-            notificar('Seu navegador não suporta ditado. Use o Chrome ou digite o comando.', 'erro');
+            notificar('Seu navegador não faz ditado. Use o Chrome, ou digite o comando aqui.', 'erro');
         }
     } catch (e) {
         pararVisualDitado();
@@ -889,8 +902,7 @@ fetch('/api/sessao')
         if (sessao.modoAplicativo) {
             manterSessaoViva();
         }
-        // Sem este aviso, dois minutos de espera passam por travamento.
-        el('aviso-container').hidden = !sessao.emContainer;
+
     })
     .catch(() => {
         /* Versao antiga do servidor ou offline: segue sem o encerramento. */

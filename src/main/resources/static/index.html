@@ -187,7 +187,6 @@
                 <p id="erro-formulario" class="erro" hidden></p>
             </form>
         </section>
-        </div>
 
     </div>
 
@@ -349,13 +348,13 @@
         <hr class="divisor-config">
 
         <h3 class="config-secao">Voz</h3>
-        <p class="config-texto">O ditado por voz funciona pelo próprio navegador, de graça, no
-           Chrome do computador e do Android. O <strong>Safari não tem esse recurso</strong> —
-           no iPhone e no Mac, o campo de texto continua disponível.</p>
-        <p class="config-texto">Informando uma chave da OpenAI, a transcrição passa a ser feita
-           no servidor pelo Whisper e funciona em qualquer navegador. A chave é sua, fica
-           guardada só nesta máquina e <strong>consome crédito da sua conta</strong> a cada
-           transcrição.</p>
+        <p class="config-texto"><strong>A chave da OpenAI é obrigatória para o assistente.</strong>
+           Sem ela você continua usando o aplicativo normalmente — lançamentos, saldo, categorias
+           e porquinho —, mas o assistente que entende linguagem natural e o ditado por voz
+           ficam indisponíveis.</p>
+        <p class="config-texto">A chave é sua, sai de <strong>platform.openai.com</strong>, exige
+           crédito na conta e <strong>consome esse crédito a cada uso</strong>. Ela fica guardada
+           somente nesta máquina e nunca é enviada de volta para a tela.</p>
         <form id="form-chave-openai">
             <label>
                 <span>Chave da OpenAI <span id="estado-chave" class="etiqueta-estado" hidden>configurada</span></span>
@@ -369,12 +368,6 @@
             <p id="erro-chave" class="erro" hidden></p>
         </form>
 
-        <div id="aviso-container" class="aviso-lento" hidden>
-            <strong>Rodando por Docker.</strong> Dentro do container o modelo usa só o
-            processador, sem a placa de vídeo. As respostas do assistente levam por volta de
-            <strong>2 minutos</strong> em vez de poucos segundos. Não é travamento — é o custo
-            do container. Para respostas rápidas, use o aplicativo instalado.
-        </div>
     </div>
 </div>
 

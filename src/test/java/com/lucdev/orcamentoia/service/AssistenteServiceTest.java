@@ -9,6 +9,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import com.lucdev.orcamentoia.config.ClienteDeChat;
+import com.lucdev.orcamentoia.model.Configuracao;
 import org.springframework.ai.chat.client.ChatClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,11 +35,24 @@ class AssistenteServiceTest {
 
     private AssistenteService comRespostaDoModelo(String resposta) {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        // O cliente e resolvido na hora do uso, porque a chave pode ter sido
+        // informada na interface depois que a aplicacao subiu.
+        ClienteDeChat clienteDeChat = mock(ClienteDeChat.class);
+        when(clienteDeChat.obter()).thenReturn(chatClient);
+
+        // Estes testes exercitam o caminho da IA, entao a configuracao precisa
+        // ter chave: sem ela o assistente usaria o interpretador proprio.
+        Configuracao comChave = new Configuracao();
+        comChave.setChaveOpenAi("sk-teste");
+        ConfiguracaoService configuracaoService = mock(ConfiguracaoService.class);
+        when(configuracaoService.obter()).thenReturn(comChave);
+        InterpretadorDeComandos interpretador = mock(InterpretadorDeComandos.class);
         // A cadeia espelha a do service: prompt -> user -> advisors -> tools -> call.
         when(chatClient.prompt().user(anyString()).advisors(any(java.util.function.Consumer.class))
                 .tools(any(Object[].class)).call().content())
                 .thenReturn(resposta);
-        return new AssistenteService(chatClient, financasTools, investimentoTools, appTools);
+        return new AssistenteService(interpretador, configuracaoService, clienteDeChat,
+                financasTools, investimentoTools, appTools);
     }
 
     @Test

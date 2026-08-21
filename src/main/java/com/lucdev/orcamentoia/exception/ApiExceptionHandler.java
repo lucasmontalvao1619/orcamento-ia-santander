@@ -36,10 +36,25 @@ public class ApiExceptionHandler {
 
     // Falha do provedor de IA nao e erro da nossa aplicacao: sem estes handlers
     // uma chave invalida ou uma indisponibilidade da OpenAI vira um 500 opaco.
+    // "Recusou a requisicao" nao diz o que fazer. As duas causas reais pedem
+    // acoes opostas: chave sem credito e problema de cobranca, chave invalida e
+    // problema de configuracao. Distinguir poupa o usuario de procurar no lugar
+    // errado — foi o que aconteceu num teste real, com a chave certa e a conta
+    // sem credito.
     @ExceptionHandler(NonTransientAiException.class)
     public ProblemDetail provedorDeIaRecusou(NonTransientAiException e) {
-        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
-                "O provedor de IA recusou a requisicao. Verifique a chave de API e o modelo configurado.");
+        String causa = e.getMessage() == null ? "" : e.getMessage();
+        String detalhe;
+        if (causa.contains("insufficient_quota")) {
+            detalhe = "Sua conta da OpenAI esta sem credito. A chave e valida, mas cada resposta "
+                    + "consome credito: adicione saldo em platform.openai.com/billing.";
+        } else if (causa.contains("invalid_api_key") || causa.contains("Incorrect API key")) {
+            detalhe = "A chave da OpenAI foi recusada. Confira se copiou a chave inteira em "
+                    + "Configuracoes, sem espacos.";
+        } else {
+            detalhe = "O provedor de IA recusou a requisicao. Verifique a chave de API e o modelo configurado.";
+        }
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, detalhe);
         problema.setTitle("Falha no provedor de IA");
         return problema;
     }

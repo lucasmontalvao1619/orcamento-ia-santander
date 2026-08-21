@@ -5,6 +5,7 @@ import com.lucdev.orcamentoia.tool.FinancasTools;
 import com.lucdev.orcamentoia.tool.InvestimentoTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.lucdev.orcamentoia.config.ClienteDeChat;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
@@ -30,23 +31,53 @@ public class AssistenteService {
     private static final String RESPOSTA_PADRAO =
             "Pronto, comando processado. Confira o saldo e a lista de transacoes.";
 
-    private final ChatClient chatClient;
+    private final InterpretadorDeComandos interpretador;
+    private final ConfiguracaoService configuracaoService;
+    private final ClienteDeChat clienteDeChat;
     private final FinancasTools financasTools;
     private final InvestimentoTools investimentoTools;
     private final AppTools appTools;
 
-    public AssistenteService(ChatClient chatClient,
+    public AssistenteService(InterpretadorDeComandos interpretador,
+                             ConfiguracaoService configuracaoService,
+                             ClienteDeChat clienteDeChat,
                              FinancasTools financasTools,
                              InvestimentoTools investimentoTools,
                              AppTools appTools) {
-        this.chatClient = chatClient;
+        this.interpretador = interpretador;
+        this.configuracaoService = configuracaoService;
+        this.clienteDeChat = clienteDeChat;
         this.financasTools = financasTools;
         this.investimentoTools = investimentoTools;
         this.appTools = appTools;
     }
 
+    // Mostrada quando o interpretador nao reconhece a frase. Lista exemplos
+    // reais em vez de um "nao entendi" seco: sem IA, o usuario precisa saber
+    // qual formato funciona.
+    private static final String AJUDA_SEM_IA = """
+            Nao entendi. Sem uma chave da OpenAI configurada eu entendo comandos diretos, como:
+            - gastei 60 no uber
+            - recebi 500 de freela
+            - meu salario e 3000, dia 15
+            - qual e o meu saldo
+            - quanto gastei com alimentacao
+            - guarda 200 no porquinho
+            - listar transacoes
+            - corrige a transacao 3 para 45
+            - apaga a transacao 3
+            Para frases livres, informe sua chave da OpenAI em Configuracoes.""";
+
     public String processarComando(String textoUsuario) {
-        String resposta = chatClient.prompt()
+        // Sem chave da OpenAI nao ha modelo para interpretar a frase, mas o
+        // aplicativo nao pode ficar mudo: o interpretador proprio entende os
+        // comandos comuns de graca, offline e na hora. Com chave, a IA assume e
+        // lida tambem com frases fora do padrao.
+        if (!configuracaoService.obter().temChaveOpenAi()) {
+            return interpretador.interpretar(textoUsuario).orElse(AJUDA_SEM_IA);
+        }
+
+        String resposta = clienteDeChat.obter().prompt()
                 .user(textoUsuario)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, CONVERSA))
                 .tools(financasTools, investimentoTools, appTools)
