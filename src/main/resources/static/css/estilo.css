@@ -1111,3 +1111,94 @@ tr:hover .apagar, .apagar:focus-visible { opacity: 1; }
     font-size: 13px;
 }
 .valor-mes:focus { outline: 2px solid var(--acento-claro); outline-offset: 1px; }
+
+/* Total investido, no card de saldo. Discreto de proposito: e informacao de
+   apoio, nao concorre com o saldo, que e o numero principal da tela. */
+.cartao-extra {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #4ade80;
+}
+.cartao-extra[hidden] { display: none; }
+
+/* ------------------------------------------------------ graficos ---- */
+
+.grafico-area { padding: 8px 4px; }
+
+.grafico-barras {
+    width: 100%;
+    height: 190px;
+    display: block;
+    border-bottom: 1px solid var(--borda);
+}
+.barra-despesa { fill: var(--acento); }
+.barra-receita { fill: #22c55e; }
+
+.grafico-eixo {
+    display: flex;
+    margin-top: 8px;
+}
+.grafico-eixo span {
+    flex: 1;
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--texto-3);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.grafico-legenda {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--texto-2);
+}
+.grafico-legenda i {
+    display: inline-block;
+    width: 9px; height: 9px;
+    margin-right: 5px;
+    border-radius: 2px;
+    vertical-align: middle;
+}
+.ponto-despesa { background: var(--acento); }
+.ponto-receita { background: #22c55e; }
+
+.categorias-grafico { display: flex; flex-direction: column; gap: 12px; }
+.categoria-linha {
+    display: grid;
+    grid-template-columns: 110px 1fr 96px 42px;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+.categoria-nome { color: var(--texto-2); }
+.categoria-valor { text-align: right; font-weight: 600; }
+.barra--larga { width: 100%; height: 9px; }
+
+.indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    gap: 12px;
+    padding: 4px;
+}
+.indicador {
+    padding: 14px 16px;
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    background: var(--superficie-2);
+}
+.indicador span {
+    display: block;
+    font-size: 11px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--texto-3);
+}
+.indicador strong { display: block; margin-top: 6px; font-size: 19px; }
+.indicador small { display: block; margin-top: 4px; font-size: 11.5px; color: var(--texto-3); }
+
+@media (max-width: 620px) {
+    .categoria-linha { grid-template-columns: 90px 1fr 80px; }
+    .categoria-linha .percentual { display: none; }
+}

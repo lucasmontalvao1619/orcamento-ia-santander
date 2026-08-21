@@ -96,4 +96,52 @@ class ResumoServiceTest {
 
         assertThat(servico.montar(true).despesasPorCategoria().get(0).categoria()).isEqualTo("outros");
     }
+
+    // --- serie mensal (graficos) ---------------------------------------------
+
+    @Test
+    void devolveAQuantidadePedidaDeMesesEmOrdem() {
+        when(transacaoService.listarTodas()).thenReturn(List.of());
+
+        List<ResumoService.Mes> meses = servico.ultimosMeses(6);
+
+        assertThat(meses).hasSize(6);
+        // Do mais antigo para o mais recente: e a ordem em que o grafico desenha.
+        assertThat(meses.get(5).mes()).isEqualTo(java.time.LocalDate.now().getMonthValue());
+    }
+
+    // Mes sem lancamento entra com zero em vez de sumir: um grafico que pula
+    // meses vazios encosta duas barras distantes no tempo como se fossem
+    // seguidas, e mente sobre o ritmo de gasto.
+    @Test
+    void mesSemLancamentoEntraComZero() {
+        when(transacaoService.listarTodas()).thenReturn(List.of(
+                t("Hoje", "100.00", "lazer", TipoTransacao.DESPESA, LocalDateTime.now())));
+
+        List<ResumoService.Mes> meses = servico.ultimosMeses(3);
+
+        assertThat(meses).hasSize(3);
+        assertThat(meses.get(0).despesas()).isEqualByComparingTo("0");
+        assertThat(meses.get(2).despesas()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void separaReceitasDeDespesasEmCadaMes() {
+        when(transacaoService.listarTodas()).thenReturn(List.of(
+                t("Gasto", "40.00", "lazer", TipoTransacao.DESPESA, LocalDateTime.now()),
+                t("Ganho", "150.00", "extra", TipoTransacao.RECEITA, LocalDateTime.now())));
+
+        ResumoService.Mes atual = servico.ultimosMeses(2).get(1);
+
+        assertThat(atual.despesas()).isEqualByComparingTo("40.00");
+        assertThat(atual.receitas()).isEqualByComparingTo("150.00");
+        assertThat(atual.saldo()).isEqualByComparingTo("110.00");
+    }
+
+    @Test
+    void oRotuloDoMesEhAbreviado() {
+        when(transacaoService.listarTodas()).thenReturn(List.of());
+
+        assertThat(servico.ultimosMeses(1).get(0).rotulo()).hasSize(3);
+    }
 }

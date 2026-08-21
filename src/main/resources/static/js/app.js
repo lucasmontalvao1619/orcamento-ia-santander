@@ -715,6 +715,16 @@ async function carregarInvestimentos(idDestaque = null) {
     el('valor-depositado').textContent = MOEDA.format(Number(resumo.total));
     el('valor-rendimento').textContent = '+ ' + MOEDA.format(Number(resumo.rendimento));
     el('taxa-cdi').textContent = `100% do CDI (${(Number(resumo.cdiAnual) * 100).toFixed(2).replace('.', ',')}% a.a.)`;
+    // Espelha o total investido no card de saldo. O porquinho e separado do
+    // orcamento de proposito, mas sem aparecer na tela principal ele some da
+    // vista de quem nao abre a aba de investimentos.
+    const investido = Number(resumo.totalComRendimento);
+    const linha = el('saldo-investido');
+    if (linha) {
+        linha.textContent = `+ ${MOEDA.format(investido)} investidos`;
+        linha.hidden = investido <= 0;
+    }
+
     el('legenda-porquinho').textContent = lista.length
         ? `${MOEDA.format(Number(resumo.aportes))} guardados · ${MOEDA.format(Number(resumo.retiradas))} retirados`
         : 'Separado do saldo do orçamento';
@@ -820,6 +830,7 @@ el('abas').addEventListener('click', (e) => {
     // tabela fica sempre atual sem precisar de botao de atualizar.
     if (aba === 'fixos') { preencherCategoriasDoFixo(); carregarFixos(); carregarFecharMes(); }
     if (aba === 'resumo') carregarResumo();
+    if (aba === 'graficos') carregarGraficos();
 });
 
 /* --------------------------------------------------- fixos e resumo ---- */
@@ -1002,6 +1013,121 @@ el('botao-fechar-mes').addEventListener('click', async () => {
     } finally {
         botao.disabled = false;
     }
+});
+
+/* ------------------------------------------------------- graficos ---- */
+
+// SVG escrito na mao, sem biblioteca. Uma biblioteca de graficos custaria
+// centenas de KB, exigiria rede para o CDN ou entraria no jar, e aqui basta
+// desenhar retangulos: o ganho nao pagaria o peso.
+
+let mesesDoGrafico = 6;
+
+function barrasMensais(meses) {
+    const maior = Math.max(
+        ...meses.map((m) => Math.max(Number(m.despesas), Number(m.receitas))), 1);
+    const largura = 100 / meses.length;
+
+    const barras = meses.map((m, i) => {
+        const x = i * largura;
+        const alturaD = (Number(m.despesas) / maior) * 100;
+        const alturaR = (Number(m.receitas) / maior) * 100;
+        const meia = largura * 0.28;
+        return `
+            <rect x="${x + largura * 0.16}%" y="${100 - alturaR}%" width="${meia}%" height="${alturaR}%"
+                  class="barra-receita" rx="2">
+                <title>${m.rotulo}: recebeu ${MOEDA.format(m.receitas)}</title>
+            </rect>
+            <rect x="${x + largura * 0.5}%" y="${100 - alturaD}%" width="${meia}%" height="${alturaD}%"
+                  class="barra-despesa" rx="2">
+                <title>${m.rotulo}: gastou ${MOEDA.format(m.despesas)}</title>
+            </rect>`;
+    }).join('');
+
+    const rotulos = meses.map((m) =>
+        `<span>${texto(m.rotulo)}</span>`).join('');
+
+    return `
+        <div class="grafico-legenda">
+            <span><i class="ponto-receita"></i> Recebido</span>
+            <span><i class="ponto-despesa"></i> Gasto</span>
+        </div>
+        <svg class="grafico-barras" viewBox="0 0 100 100" preserveAspectRatio="none"
+             role="img" aria-label="Gastos e receitas por mês">${barras}</svg>
+        <div class="grafico-eixo">${rotulos}</div>`;
+}
+
+function barrasDeCategoria(linhas) {
+    if (!linhas.length) return '<p class="vazio">Nenhum gasto no período.</p>';
+    return `<div class="categorias-grafico">${linhas.map((l) => `
+        <div class="categoria-linha">
+            <span class="categoria-nome">${texto(rotuloCategoria(l.categoria))}</span>
+            <div class="barra barra--larga">
+                <div class="barra-preenchida" style="width:${l.percentual}%"></div>
+            </div>
+            <span class="categoria-valor">${MOEDA.format(l.total)}</span>
+            <span class="percentual">${Number(l.percentual).toFixed(0)}%</span>
+        </div>`).join('')}</div>`;
+}
+
+function indicadores(meses, resumo) {
+    const comGasto = meses.filter((m) => Number(m.despesas) > 0);
+    const media = comGasto.length
+        ? comGasto.reduce((soma, m) => soma + Number(m.despesas), 0) / comGasto.length
+        : 0;
+    const atual = meses[meses.length - 1];
+    const anterior = meses.length > 1 ? meses[meses.length - 2] : null;
+
+    // Comparar com o mes anterior so faz sentido se o anterior teve movimento;
+    // senao a variacao seria sempre "aumentou 100%".
+    let variacao = null;
+    if (anterior && Number(anterior.despesas) > 0) {
+        variacao = ((Number(atual.despesas) - Number(anterior.despesas))
+            / Number(anterior.despesas)) * 100;
+    }
+
+    const maiorCategoria = resumo.despesasPorCategoria[0];
+    const cartao = (rotulo, valor, apoio = '') => `
+        <div class="indicador">
+            <span>${rotulo}</span>
+            <strong>${valor}</strong>
+            ${apoio ? `<small>${apoio}</small>` : ''}
+        </div>`;
+
+    return [
+        cartao('Gasto deste mês', MOEDA.format(atual.despesas),
+            variacao === null ? 'sem base de comparação'
+                : `${variacao >= 0 ? '▲' : '▼'} ${Math.abs(variacao).toFixed(0)}% vs. mês anterior`),
+        cartao('Média mensal', MOEDA.format(media),
+            `${comGasto.length} mês(es) com movimento`),
+        cartao('Maior modalidade', maiorCategoria ? rotuloCategoria(maiorCategoria.categoria) : '—',
+            maiorCategoria ? `${MOEDA.format(maiorCategoria.total)} neste mês` : ''),
+        cartao('Sobra do mês', MOEDA.format(atual.saldo),
+            Number(atual.saldo) >= 0 ? 'no azul' : 'no vermelho')
+    ].join('');
+}
+
+async function carregarGraficos() {
+    try {
+        const [meses, resumo] = await Promise.all([
+            (await fetch(`/api/resumo/mensal?meses=${mesesDoGrafico}`)).json(),
+            (await fetch('/api/resumo?mes=true')).json()
+        ]);
+        el('grafico-mensal').innerHTML = barrasMensais(meses);
+        el('grafico-categorias').innerHTML = barrasDeCategoria(resumo.despesasPorCategoria);
+        el('indicadores').innerHTML = indicadores(meses, resumo);
+    } catch {
+        el('grafico-mensal').innerHTML = '<p class="vazio">Não foi possível carregar os gráficos.</p>';
+    }
+}
+
+el('filtro-meses').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    mesesDoGrafico = Number(b.dataset.meses);
+    el('filtro-meses').querySelectorAll('button')
+        .forEach((x) => x.classList.toggle('ativa', x === b));
+    carregarGraficos();
 });
 
 el('form-fixo').addEventListener('submit', async (e) => {

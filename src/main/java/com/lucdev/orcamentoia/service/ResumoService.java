@@ -50,6 +50,47 @@ public class ResumoService {
     // mesAtual=true limita ao mes corrente, que e como as pessoas pensam o
     // orcamento. Sem o filtro, o resumo mistura meses e nao serve para decidir
     // nada sobre o mes que esta correndo.
+    public record Mes(
+            String rotulo,
+            int ano,
+            int mes,
+            BigDecimal despesas,
+            BigDecimal receitas,
+            BigDecimal saldo
+    ) {
+    }
+
+    private static final String[] NOMES_DOS_MESES = {
+            "jan", "fev", "mar", "abr", "mai", "jun",
+            "jul", "ago", "set", "out", "nov", "dez"};
+
+    // Serie dos ultimos meses, do mais antigo para o mais recente.
+    //
+    // Meses sem lancamento entram com zero em vez de sumirem: um grafico que
+    // pula meses vazios mente sobre o ritmo de gasto, porque encosta duas
+    // barras distantes no tempo como se fossem seguidas.
+    public List<Mes> ultimosMeses(int quantidade) {
+        List<Transacao> transacoes = transacaoService.listarTodas();
+        LocalDate referencia = LocalDate.now().withDayOfMonth(1);
+        List<Mes> meses = new ArrayList<>();
+
+        for (int i = quantidade - 1; i >= 0; i--) {
+            LocalDate alvo = referencia.minusMonths(i);
+            List<Transacao> doMes = transacoes.stream()
+                    .filter(t -> t.getDataHora() != null
+                            && t.getDataHora().getYear() == alvo.getYear()
+                            && t.getDataHora().getMonthValue() == alvo.getMonthValue())
+                    .toList();
+            BigDecimal despesas = somar(doMes, TipoTransacao.DESPESA);
+            BigDecimal receitas = somar(doMes, TipoTransacao.RECEITA);
+            meses.add(new Mes(
+                    NOMES_DOS_MESES[alvo.getMonthValue() - 1],
+                    alvo.getYear(), alvo.getMonthValue(),
+                    despesas, receitas, receitas.subtract(despesas)));
+        }
+        return meses;
+    }
+
     public Resumo montar(boolean apenasMesAtual) {
         List<Transacao> transacoes = transacaoService.listarTodas();
         if (apenasMesAtual) {

@@ -100,30 +100,40 @@ public class InterpretadorDeComandos {
             "o que voce faz", "o que da pra fazer", "me ajuda", "socorro", "nao sei usar",
             "como usar", "exemplos"};
 
+    // Uma frase por linha, sem colunas. A versao anterior alinhava exemplos em
+    // duas colunas com espacos: em fonte proporcional, que e a da interface,
+    // isso vira uma bagunca de texto desalinhado.
     static final String AJUDA = """
-            Posso cuidar do seu orcamento por comandos escritos. Exemplos:
+            Posso cuidar do seu orcamento por comandos escritos. Alguns exemplos:
 
-            Lancamentos
-              gastei 60 no uber          recebi 500 de freela
-              paguei 1.250,90 de aluguel   ganhei 200 de presente
-              corrige a transacao 3 para 45
-              apaga a transacao 3
+            LANCAR
+            • gastei 60 no uber
+            • recebi 500 de freela
+            • paguei 1.250,90 de aluguel
+            • corrige a transacao 3 para 45
+            • apaga a transacao 3
 
-            Consultas
-              qual e o meu saldo         quanto gastei com alimentacao
-              listar transacoes          como estou
+            CONSULTAR
+            • qual e o meu saldo
+            • quanto gastei com alimentacao
+            • listar transacoes
+            • para onde meu dinheiro esta indo
 
-            Salario
-              meu salario e 3000, dia 15   qual e o meu salario
-              nao tenho salario fixo
+            SALARIO
+            • meu salario e 3000, dia 15
+            • nao tenho salario fixo
 
-            Porquinho
-              guarda 200 no porquinho    tira 100 do porquinho
-              quanto tenho guardado      movimentos do porquinho
-              apaga o movimento 2
+            CONTAS FIXAS
+            • todo mes pago 89 de internet
+            • o que falta pagar esse mes
+            • fechar o mes
 
-            As categorias sao inferidas pelo que voce escreve: uber vira
-            transporte, mercado vira alimentacao, farmacia vira saude.""";
+            PORQUINHO
+            • guarda 200 no porquinho
+            • quanto tenho guardado
+
+            A categoria sai do que voce escreve: uber vira transporte, mercado
+            vira alimentacao, farmacia vira saude.""";
 
     private final FinancasTools financas;
     private final InvestimentoTools investimentos;

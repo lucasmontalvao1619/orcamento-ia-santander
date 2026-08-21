@@ -19,6 +19,14 @@ public class ResumoController {
         this.servico = servico;
     }
 
+    // Serie mensal para os graficos. O limite existe para o grafico continuar
+    // legivel: com dezenas de barras nao da para comparar nada.
+    @GetMapping("/mensal")
+    public ResponseEntity<java.util.List<ResumoService.Mes>> mensal(
+            @RequestParam(name = "meses", defaultValue = "6") int meses) {
+        return ResponseEntity.ok(servico.ultimosMeses(Math.max(1, Math.min(meses, 24))));
+    }
+
     @GetMapping
     public ResponseEntity<ResumoService.Resumo> resumo(
             @RequestParam(name = "mes", defaultValue = "true") boolean apenasMesAtual) {

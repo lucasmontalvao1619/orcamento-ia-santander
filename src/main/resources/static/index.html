@@ -96,6 +96,9 @@
             <span class="cartao-rotulo">Saldo atual</span>
             <strong id="valor-saldo" class="cartao-valor">R$ 0,00</strong>
             <span id="legenda-saldo" class="cartao-legenda">Receitas menos despesas</span>
+            <!-- O porquinho e separado do saldo de proposito, mas some da vista
+                 se nao aparecer em lugar nenhum na tela principal. -->
+            <span id="saldo-investido" class="cartao-extra" hidden></span>
         </article>
         <article class="cartao cartao--receita">
             <span class="cartao-rotulo">Receitas</span>
@@ -198,6 +201,7 @@
             <button type="button" data-aba="investimentos" role="tab" aria-selected="false">Investimentos</button>
             <button type="button" data-aba="fixos" role="tab" aria-selected="false">Fixos</button>
             <button type="button" data-aba="resumo" role="tab" aria-selected="false">Resumo</button>
+            <button type="button" data-aba="graficos" role="tab" aria-selected="false">Gráficos</button>
         </div>
 
         <div id="painel-transacoes" role="tabpanel">
@@ -293,6 +297,23 @@
             </div>
         </div>
         <div id="tabela-resumo" class="tabela-area"></div>
+        </div>
+
+        <div id="painel-graficos" role="tabpanel" hidden>
+        <div class="painel-cabecalho">
+            <h2>Gastos ao longo dos meses</h2>
+            <div class="filtros" id="filtro-meses">
+                <button type="button" data-meses="6" class="ativa">6 meses</button>
+                <button type="button" data-meses="12">12 meses</button>
+            </div>
+        </div>
+        <div id="grafico-mensal" class="grafico-area"></div>
+
+        <div class="painel-cabecalho" style="margin-top: 26px;"><h2>Onde o dinheiro foi</h2></div>
+        <div id="grafico-categorias" class="grafico-area"></div>
+
+        <div class="painel-cabecalho" style="margin-top: 26px;"><h2>Indicadores</h2></div>
+        <div id="indicadores" class="indicadores"></div>
         </div>
 
         <div id="painel-investimentos" role="tabpanel" hidden>
