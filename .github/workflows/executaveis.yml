@@ -1,0 +1,110 @@
+# Gera os executaveis de duplo clique para Windows e macOS.
+#
+# O jpackage so consegue empacotar para o sistema em que roda, e nao existe
+# forma de produzir um .exe de Windows a partir de um Mac. Por isso o build
+# acontece aqui: o GitHub empresta uma maquina de cada sistema.
+#
+# Rodar: aba Actions > "Executaveis" > Run workflow. Um push de tag v* tambem
+# dispara, e nesse caso os arquivos sao anexados a Release.
+name: Executaveis
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  empacotar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sistema: windows-latest
+            nome: windows
+            icone: scripts/icone.ico
+          - sistema: macos-latest
+            nome: macos
+            icone: Iniciar Orçamento IA.app/Contents/Resources/icone.icns
+
+    runs-on: ${{ matrix.sistema }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # O jpackage vem junto com o JDK, entao nao ha nada extra para instalar.
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Rodar os testes
+        run: ./mvnw -B test
+
+      - name: Compilar o jar
+        run: ./mvnw -B clean package -DskipTests
+
+      # O jpackage copia tudo que estiver em --input para dentro do executavel.
+      # Sem uma pasta so com o jar, o target inteiro iria junto.
+      - name: Separar o jar
+        shell: bash
+        run: |
+          mkdir -p palco
+          cp target/*.jar palco/
+          ls palco/
+
+      - name: Empacotar com o Java embutido
+        shell: bash
+        run: |
+          JAR=$(ls palco/*.jar | head -1)
+          VERSAO=$(grep -m1 '<version>' pom.xml | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+          jpackage \
+            --type app-image \
+            --name "Orcamento IA" \
+            --app-version "$VERSAO" \
+            --input palco \
+            --main-jar "$(basename "$JAR")" \
+            --icon "${{ matrix.icone }}" \
+            --java-options "-Dapp.empacotado=true" \
+            --java-options "-Dapp.abrir-navegador=true" \
+            --dest saida
+
+      # Verificacao minima de que o empacotamento produziu algo utilizavel: sem
+      # isto, um jpackage que falhasse pela metade viraria um zip vazio que so
+      # daria erro na mao de quem baixou.
+      - name: Conferir o resultado
+        shell: bash
+        run: |
+          if [ "${{ matrix.nome }}" = "windows" ]; then
+            test -f "saida/Orcamento IA/Orcamento IA.exe" || { echo "exe nao foi gerado"; exit 1; }
+          else
+            test -d "saida/Orcamento IA.app" || { echo "app nao foi gerado"; exit 1; }
+          fi
+          echo "empacotamento conferido"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orcamento-ia-${{ matrix.nome }}
+          path: saida/
+          retention-days: 30
+
+      - name: Anexar a Release (somente em tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          cd saida
+          if [ "${{ matrix.nome }}" = "windows" ]; then
+            7z a "../orcamento-ia-windows.zip" "Orcamento IA"
+          else
+            # O -y preserva os links simbolicos do runtime Java dentro do .app;
+            # sem ele o pacote incha e o executavel pode nem abrir.
+            zip -r -y "../orcamento-ia-macos.zip" "Orcamento IA.app"
+          fi
+          cd ..
+          gh release upload "${GITHUB_REF_NAME}" "orcamento-ia-${{ matrix.nome }}.zip" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

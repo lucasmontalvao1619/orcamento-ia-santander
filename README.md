@@ -53,6 +53,30 @@ sozinho quando a aplicacao responde.
 Cada instalacao comeca com o **orcamento zerado**: nao acompanha dado nenhum, e
 a aplicacao pergunta o salario no primeiro acesso — cada pessoa configura o seu.
 
+### Opcao 1b — Executavel com o Java embutido
+
+Os atalhos acima chamam o Maven da maquina, entao exigem Java instalado. Para
+mandar a aplicacao para outra pessoa, existe um executavel que nao exige nada:
+
+```bash
+scripts/gerar-executavel.sh      # gera para o sistema em que voce rodar
+```
+
+Sai um `dist/executavel/Orcamento IA.app` (~227 MB) com uma JVM dentro. Quem
+receber so da dois cliques. Os lancamentos vao para `~/.orcamento-ia`, e nao
+para dentro do aplicativo — um programa instalado nao pode gravar na propria
+pasta.
+
+O **`.exe` do Windows** e construido pelo GitHub Actions, porque o `jpackage`
+so empacota para o sistema em que roda e nao ha como gerar um binario Windows a
+partir de um Mac. Va em **Actions > Executaveis > Run workflow**, ou publique
+uma tag `v*`: os dois executaveis saem prontos, e numa tag ainda sao anexados a
+Release.
+
+Uma ressalva honesta: o executavel embute o **Java**, nao a **IA**. O modelo tem
+4,7 GB e continua vindo do Ollama ou do Docker. Sem ele a interface abre e os
+lancamentos manuais funcionam; o assistente por voz responde erro.
+
 ### Opcao 2 — Local, sem Docker
 
 Requer **Java 17**, **Maven** e **Ollama**.
