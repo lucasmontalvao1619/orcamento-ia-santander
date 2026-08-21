@@ -13,73 +13,82 @@ e uma variavel de ambiente.
 
 ## Como executar
 
-### Opcao 1 — Dois cliques (recomendado)
+Ha tres caminhos. O primeiro e o que da menos trabalho a quem so quer usar.
 
-Requer apenas o **Docker** instalado e aberto. Nao precisa de Java, Maven nem Ollama.
+### Opcao 1 — Aplicativo de duplo clique (macOS, testado)
 
-Na raiz do projeto ha um item para clicar, um por sistema:
-
-| Sistema | Iniciar | Parar |
-|---------|---------|-------|
-| macOS | **Iniciar Orcamento IA** | **Parar Orcamento IA** |
-| Windows | **Iniciar Orcamento IA.bat** | `scripts/parar.sh` |
-| Terminal | `scripts/iniciar.sh` | `scripts/parar.sh` |
-
-No macOS o clique **nao abre Terminal nenhum**: a aplicacao sobe em segundo
-plano, o macOS avisa por notificacao e o navegador abre sozinho quando fica
-pronta. Como nao ha janela para fechar, parar tambem e um clique — dai o
-segundo atalho. Se algo falhar, o alerta aponta `logs/inicializacao.log`.
-
-No macOS, na **primeira vez**, o sistema recusa aplicativos sem assinatura: clique
-com o **botao direito > Abrir** e confirme. Depois disso o duplo clique funciona
-normalmente.
-
-O atalho escolhe sozinho como subir:
-
-- **Com Docker disponivel**, usa o container — o caminho de quem so recebeu o zip
-  e nao tem Java, Maven nem Ollama na maquina.
-- **Sem Docker, mas com Java e Ollama instalados**, sobe local, sem container, e
-  faz exatamente a mesma coisa. Se o Ollama nao estiver no ar, o proprio script
-  o inicia e baixa o modelo caso falte.
-
-"O Docker nao esta rodando" e uma resposta inutil para quem tem todas as pecas
-instaladas e so queria abrir o aplicativo; por isso a escolha e automatica. Se
-nenhum dos dois caminhos estiver disponivel, a mensagem diz o que instalar.
-
-A primeira execucao baixa o modelo de IA (~4,7 GB) e leva alguns minutos; nas
-seguintes a subida e rapida. O navegador abre em **http://localhost:8080**
-sozinho quando a aplicacao responde.
-
-Cada instalacao comeca com o **orcamento zerado**: nao acompanha dado nenhum, e
-a aplicacao pergunta o salario no primeiro acesso — cada pessoa configura o seu.
-
-### Opcao 1b — Executavel com o Java embutido
-
-Os atalhos acima chamam o Maven da maquina, entao exigem Java instalado. Para
-mandar a aplicacao para outra pessoa, existe um executavel que nao exige nada:
+Um aplicativo com o **Java embutido**: nao exige Java, Maven nem Docker na
+maquina. E o formato para mandar a aplicacao para outra pessoa.
 
 ```bash
-scripts/gerar-executavel.sh      # gera para o sistema em que voce rodar
+scripts/gerar-executavel.sh
 ```
 
-Sai um `dist/executavel/Orcamento IA.app` (~227 MB) com uma JVM dentro. Quem
-receber so da dois cliques. Os lancamentos vao para `~/.orcamento-ia`, e nao
-para dentro do aplicativo — um programa instalado nao pode gravar na propria
-pasta.
+Sai um `dist/executavel/Orcamento IA.app` (~213 MB). Copie para onde preferir —
+Desktop, Aplicativos — e de dois cliques. Como funciona no uso:
 
-O **`.exe` do Windows** e construido pelo GitHub Actions, porque o `jpackage`
-so empacota para o sistema em que roda e nao ha como gerar um binario Windows a
-partir de um Mac. Va em **Actions > Executaveis > Run workflow**, ou publique
-uma tag `v*`: os dois executaveis saem prontos, e numa tag ainda sao anexados a
-Release.
+- **Nao abre Terminal.** A aplicacao sobe em segundo plano, o macOS avisa por
+  notificacao e o navegador abre sozinho em http://localhost:8080.
+- **Fechar a janela encerra o programa.** A pagina manda um sinal de vida a
+  cada 4 segundos; quando os sinais param por mais de 15 segundos, a aplicacao
+  se encerra. A folga existe para um F5 nao fechar o aplicativo.
+- **Os lancamentos ficam em `~/.orcamento-ia`**, e nao dentro do aplicativo: um
+  programa instalado nao pode gravar na propria pasta, e no macOS o diretorio
+  de trabalho dele e a raiz do disco. Como e a pasta pessoal, cada conta do
+  sistema tem o proprio orcamento, e ele sobrevive a fechar e reabrir.
+- **Comeca zerado.** No primeiro acesso a aplicacao pergunta o salario; cada
+  pessoa configura o seu.
+
+Na **primeira vez** o macOS recusa aplicativos sem assinatura: clique com o
+**botao direito > Abrir** e confirme. Depois o duplo clique funciona normalmente.
+
+O **`.exe` do Windows** sai do mesmo empacotador pelo GitHub Actions, porque o
+`jpackage` so gera para o sistema em que roda — nao ha como produzir um binario
+Windows a partir de um Mac. Veja *Executaveis pelo GitHub Actions*, mais abaixo.
 
 Uma ressalva honesta: o executavel embute o **Java**, nao a **IA**. O modelo tem
 4,7 GB e continua vindo do Ollama ou do Docker. Sem ele a interface abre e os
 lancamentos manuais funcionam; o assistente por voz responde erro.
 
-### Opcao 2 — Local, sem Docker
+### Opcao 2 — Docker, sem instalar dependencia nenhuma
 
-Requer **Java 17**, **Maven** e **Ollama**.
+Este e o caminho pensado para **nao exigir nada** alem do proprio Docker: nem
+Java, nem Maven, nem Ollama, nem o download manual do modelo. O
+`docker-compose.yml` sobe tres servicos — o modelo de linguagem, o download dele
+e a aplicacao — e a aplicacao so inicia depois que o modelo termina de baixar,
+para nunca subir com o assistente quebrado.
+
+```bash
+scripts/iniciar.sh     # macOS e Linux
+```
+
+Na raiz tambem ha atalhos clicaveis que chamam esse script:
+
+| Sistema | Iniciar | Parar |
+|---------|---------|-------|
+| macOS | **Iniciar Orcamento IA** | **Parar Orcamento IA** |
+| Windows | **Iniciar Orcamento IA.bat** | `scripts/parar.sh` |
+
+O script escolhe sozinho como subir: usa o **Docker** quando ele esta
+disponivel, e cai para o **modo local** quando nao esta, desde que a maquina
+tenha Java e Ollama — inclusive iniciando o Ollama e baixando o modelo se
+faltar. "O Docker nao esta rodando" e uma resposta inutil para quem tem todas as
+pecas instaladas e so queria abrir o aplicativo.
+
+A primeira execucao baixa o modelo (~4,7 GB) e leva alguns minutos; nas
+seguintes a subida e rapida. Para encerrar, `scripts/parar.sh`, que serve aos
+dois modos.
+
+> **Estado dos testes:** o `docker-compose.yml` foi validado com
+> `docker compose config` (contexto de build, volumes e caminhos), mas o
+> `docker compose up` ainda **nao foi executado de ponta a ponta** — a maquina
+> de desenvolvimento nao conseguiu subir o daemon. O caminho da Opcao 1 e o
+> modo local, esses sim, foram testados rodando.
+
+### Opcao 3 — Local, sem Docker e sem empacotar
+
+Requer **Java 17+**, **Maven** e **Ollama**. E o caminho de quem vai mexer no
+codigo.
 
 ```bash
 brew install ollama        # macOS. Outras plataformas: https://ollama.com/download
@@ -88,6 +97,17 @@ ollama pull qwen2.5        # baixa o modelo (~4,7 GB, so na primeira vez)
 
 ./mvnw spring-boot:run
 ```
+
+### Executaveis pelo GitHub Actions
+
+O `jpackage` so empacota para o sistema em que roda, entao o `.exe` do Windows
+nao pode ser gerado a partir de um Mac. O workflow `.github/workflows/
+executaveis.yml` resolve isso pedindo uma maquina de cada sistema ao GitHub.
+
+Va em **Actions > Executaveis > Run workflow**, ou publique uma tag `v*`: os
+dois executaveis saem prontos como artefatos, e numa tag ainda sao anexados a
+Release. O workflow roda a suite de testes antes de empacotar e confere se o
+binario foi realmente produzido, para nao publicar um zip vazio.
 
 ### No celular (Android e iOS)
 
@@ -205,6 +225,14 @@ sem historico a ferramenta e chamada e o valor muda; com historico o modelo apen
 descreve o que faria. Um erro silencioso desses e pior que a falta do recurso.
 Com um modelo maior, ligue com `ASSISTENTE_MEMORIA=true`.
 
+**Fechar a janela encerra o aplicativo.** Como programa de duplo clique, o
+usuario espera que o X feche o programa — so que a interface e uma pagina web, e
+fechar a aba nao derrubaria o servidor. A pagina manda um sinal de vida
+periodico; quando os sinais cessam, a aplicacao se encerra. A tolerancia de 15
+segundos existe para o F5 nao fechar o aplicativo, ja que entre o unload e o
+load os sinais param por um instante. Vale so no modo empacotado: num servidor,
+encerrar por falta de navegador aberto seria o comportamento errado.
+
 **O nome do projeto no Docker e fixo.** O `docker-compose.yml` declara
 `name: orcamento-ia` em vez de deixar o Compose usar o nome da pasta. Sem isso,
 mover ou renomear a pasta mudaria o nome do volume e os lancamentos sumiriam —
@@ -266,9 +294,10 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-82 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+101 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
-de audio e o contrato HTTP de todos os endpoints — inclusive os status 400, 404,
+de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
+endpoints — inclusive os status 400, 404,
 502 e 503. Nao dependem de rede, de chave de API nem do Ollama.
 
 Os testes usam um banco **em memoria**, configurado em
@@ -282,9 +311,11 @@ suite mexeria nos lancamentos reais de quem estivesse usando o aplicativo.
 
 ```
 ├── Iniciar Orcamento IA.app      # Atalho do macOS: duplo clique e pronto
+├── Parar Orcamento IA.app        # Encerra sem precisar de Terminal
 ├── Iniciar Orcamento IA.bat      # O mesmo atalho no Windows
+├── .github/workflows/            # Gera os executaveis de Windows e macOS
 ├── docker/                       # Dockerfile e docker-compose.yml
-├── scripts/                      # iniciar, parar e empacotar
+├── scripts/                      # iniciar, parar, empacotar e gerar executavel
 ├── src/
 │   ├── main/
 │   │   ├── java/com/lucdev/orcamentoia/
