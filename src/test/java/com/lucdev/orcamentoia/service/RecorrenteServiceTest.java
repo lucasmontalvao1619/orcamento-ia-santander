@@ -200,4 +200,55 @@ class RecorrenteServiceTest {
 
         assertThat(t.getRecorrenteId()).isEqualTo(7L);
     }
+
+    // --- edicao --------------------------------------------------------------
+
+    // Atualizacao parcial: mudar so o dia nao pode apagar descricao e valor.
+    @Test
+    void editarSoOCampoEnviado() {
+        Recorrente luz = new Recorrente("Luz", "moradia", TipoTransacao.DESPESA, new BigDecimal("120"), 10);
+        when(repository.findById(1L)).thenReturn(Optional.of(luz));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Recorrente r = servico.atualizar(1L, null, null, null, null, 20, false);
+
+        assertThat(r.getDiaVencimento()).isEqualTo(20);
+        assertThat(r.getDescricao()).isEqualTo("Luz");
+        assertThat(r.getValorPrevisto()).isEqualByComparingTo("120");
+    }
+
+    // Tirar a previsao e acao legitima: a conta passa a ser de valor variavel.
+    // Nulo sozinho significa "nao mexer", entao precisa de um pedido explicito.
+    @Test
+    void limparPrevisaoTornaAContaVariavel() {
+        Recorrente cartao = new Recorrente("Cartao", "outros", TipoTransacao.DESPESA, new BigDecimal("300"), 15);
+        when(repository.findById(1L)).thenReturn(Optional.of(cartao));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(servico.atualizar(1L, null, null, null, null, null, true).getValorPrevisto()).isNull();
+    }
+
+    @Test
+    void editarRecusaValorNegativoEDiaInvalido() {
+        Recorrente luz = new Recorrente("Luz", "moradia", TipoTransacao.DESPESA, new BigDecimal("120"), 10);
+        when(repository.findById(1L)).thenReturn(Optional.of(luz));
+
+        assertThatThrownBy(() -> servico.atualizar(1L, null, null, null, new BigDecimal("-5"), null, false))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> servico.atualizar(1L, null, null, null, null, 45, false))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void editarTrocaTipoEcategoria() {
+        Recorrente item = new Recorrente("Aluguel", "moradia", TipoTransacao.DESPESA, new BigDecimal("900"), 5);
+        when(repository.findById(1L)).thenReturn(Optional.of(item));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Recorrente r = servico.atualizar(1L, "Aluguel recebido", "extra", TipoTransacao.RECEITA, null, null, false);
+
+        assertThat(r.getTipo()).isEqualTo(TipoTransacao.RECEITA);
+        assertThat(r.getCategoria()).isEqualTo("extra");
+        assertThat(r.getDescricao()).isEqualTo("Aluguel recebido");
+    }
 }

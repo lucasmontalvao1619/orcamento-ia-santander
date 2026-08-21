@@ -1,5 +1,6 @@
 package com.lucdev.orcamentoia.controller;
 
+import com.lucdev.orcamentoia.dto.EditarRecorrenteRequest;
 import com.lucdev.orcamentoia.dto.FecharMesRequest;
 import com.lucdev.orcamentoia.dto.ItemDoMesResponse;
 import com.lucdev.orcamentoia.dto.LancarRecorrenteRequest;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -76,6 +78,14 @@ public class RecorrenteController {
                                                     @RequestBody(required = false) @Valid LancarRecorrenteRequest request) {
         return ResponseEntity.ok(TransacaoResponse.de(
                 servico.lancar(id, request == null ? null : request.valor())));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<RecorrenteResponse> editar(@PathVariable Long id,
+                                                     @RequestBody @Valid EditarRecorrenteRequest request) {
+        return ResponseEntity.ok(RecorrenteResponse.de(servico.atualizar(id,
+                request.descricao(), request.categoria(), request.tipo(),
+                request.valorPrevisto(), request.diaVencimento(), request.limparPrevisao())));
     }
 
     @DeleteMapping("/{id}")

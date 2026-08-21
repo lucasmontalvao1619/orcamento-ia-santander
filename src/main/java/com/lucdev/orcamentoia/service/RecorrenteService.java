@@ -108,6 +108,45 @@ public class RecorrenteService {
         return recorrente;
     }
 
+    // Atualizacao parcial: campo nulo fica como esta. Sem isso, mudar so o dia
+    // do vencimento exigiria reenviar descricao, categoria e valor — e um deles
+    // faltando apagaria o dado.
+    //
+    // O valor previsto tem um caso proprio: nulo significa "nao mexer", mas
+    // limpar a previsao (para a conta virar de valor variavel) e uma acao
+    // legitima, feita com limparPrevisao.
+    @Transactional
+    public Recorrente atualizar(Long id, String descricao, String categoria, TipoTransacao tipo,
+                                BigDecimal valorPrevisto, Integer diaVencimento,
+                                boolean limparPrevisao) {
+        Recorrente r = obter(id);
+
+        if (descricao != null && !descricao.isBlank()) {
+            r.setDescricao(descricao.trim());
+        }
+        if (categoria != null && !categoria.isBlank()) {
+            r.setCategoria(categoria.trim());
+        }
+        if (tipo != null) {
+            r.setTipo(tipo);
+        }
+        if (limparPrevisao) {
+            r.setValorPrevisto(null);
+        } else if (valorPrevisto != null) {
+            if (valorPrevisto.signum() <= 0) {
+                throw new IllegalArgumentException("O valor previsto deve ser positivo.");
+            }
+            r.setValorPrevisto(valorPrevisto);
+        }
+        if (diaVencimento != null) {
+            if (diaVencimento < 1 || diaVencimento > 31) {
+                throw new IllegalArgumentException("O dia deve estar entre 1 e 31.");
+            }
+            r.setDiaVencimento(diaVencimento);
+        }
+        return repository.save(r);
+    }
+
     @Transactional
     public Recorrente atualizarPrevisao(Long id, BigDecimal valorPrevisto) {
         if (valorPrevisto != null && valorPrevisto.signum() <= 0) {
