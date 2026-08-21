@@ -79,11 +79,17 @@ A primeira execucao baixa o modelo (~4,7 GB) e leva alguns minutos; nas
 seguintes a subida e rapida. Para encerrar, `scripts/parar.sh`, que serve aos
 dois modos.
 
-> **Estado dos testes:** o `docker-compose.yml` foi validado com
-> `docker compose config` (contexto de build, volumes e caminhos), mas o
-> `docker compose up` ainda **nao foi executado de ponta a ponta** — a maquina
-> de desenvolvimento nao conseguiu subir o daemon. O caminho da Opcao 1 e o
-> modo local, esses sim, foram testados rodando.
+> **Testado de ponta a ponta** em 21/08/2026, macOS com Docker Desktop 29.7.2:
+> os tres servicos subiram na ordem prevista (Ollama saudavel, download do
+> modelo concluido, aplicacao no ar), o orcamento nasceu zerado e o assistente
+> registrou "gastei 45 no mercado" inferindo a categoria, com o modelo rodando
+> dentro do container.
+>
+> **Uma ressalva de desempenho no macOS:** o mesmo comando levou **1min50s** no
+> container contra **~18s** rodando local. O Ollama dentro de um container Linux
+> nao alcanca a GPU do Mac e responde so em CPU. Para uso no dia a dia num Mac,
+> prefira a Opcao 1; o Docker compensa quando a maquina nao tem Java nem Ollama,
+> ou em Linux com GPU acessivel ao container.
 
 ### Opcao 3 — Local, sem Docker e sem empacotar
 
