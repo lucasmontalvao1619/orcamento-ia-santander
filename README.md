@@ -29,8 +29,17 @@ No macOS, na **primeira vez**, o sistema recusa aplicativos sem assinatura: cliq
 com o **botao direito > Abrir** e confirme. Depois disso o duplo clique funciona
 normalmente.
 
-Se aparecer "O Docker nao esta rodando", suba o daemon: abra o **Docker Desktop**,
-ou, se voce instalou o docker pelo Homebrew, rode `colima start`.
+O atalho escolhe sozinho como subir:
+
+- **Com Docker disponivel**, usa o container — o caminho de quem so recebeu o zip
+  e nao tem Java, Maven nem Ollama na maquina.
+- **Sem Docker, mas com Java e Ollama instalados**, sobe local, sem container, e
+  faz exatamente a mesma coisa. Se o Ollama nao estiver no ar, o proprio script
+  o inicia e baixa o modelo caso falte.
+
+"O Docker nao esta rodando" e uma resposta inutil para quem tem todas as pecas
+instaladas e so queria abrir o aplicativo; por isso a escolha e automatica. Se
+nenhum dos dois caminhos estiver disponivel, a mensagem diz o que instalar.
 
 O atalho abre o Terminal de proposito, em vez de rodar em silencio: a primeira
 execucao baixa o modelo de IA (~4,7 GB) e leva alguns minutos, e sem uma janela

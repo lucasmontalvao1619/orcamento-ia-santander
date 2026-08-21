@@ -13,9 +13,28 @@
 RAIZ="$(cd "$(dirname "$0")/../../.." && pwd)"
 SCRIPT="$RAIZ/scripts/iniciar.sh"
 
-if [ ! -f "$SCRIPT" ]; then
-    osascript -e 'display alert "Orçamento IA" message "Não encontrei scripts/iniciar.sh. Este atalho precisa ficar dentro da pasta do projeto." as critical'
+alerta() {
+    osascript -e "display alert \"Orçamento IA\" message \"$1\" as critical" > /dev/null 2>&1
     exit 1
+}
+
+if [ ! -f "$SCRIPT" ]; then
+    alerta "Não encontrei scripts/iniciar.sh. Este atalho precisa ficar dentro da pasta do projeto."
+fi
+
+# O Terminal nao enxerga Desktop, Documentos e Downloads sem permissao explicita
+# do macOS, e a Desktop ainda pode estar sincronizada pelo iCloud. Nesse caso o
+# script existe, tem permissao de execucao, e mesmo assim falha no Terminal com
+# 'Operation not permitted' — um erro que nao diz nada a quem so queria abrir o
+# aplicativo. Melhor detectar aqui e explicar o que fazer.
+case "$RAIZ" in
+    "$HOME"/Desktop/*|"$HOME"/Documents/*|"$HOME"/Downloads/*|"$HOME"/Library/Mobile\ Documents/*)
+        alerta "O projeto está numa pasta protegida pelo macOS (Desktop, Documentos, Downloads ou iCloud). O Terminal não consegue ler arquivos daí, e a inicialização falha com 'Operation not permitted'. Mova a pasta do projeto para outro lugar — por exemplo ~/Projetos — e clique de novo."
+        ;;
+esac
+
+if [ ! -x "$SCRIPT" ]; then
+    alerta "O arquivo scripts/iniciar.sh perdeu a permissão de execução. No Terminal, rode: chmod +x '$SCRIPT'"
 fi
 
 osascript <<APPLESCRIPT
