@@ -29,6 +29,9 @@ No macOS, na **primeira vez**, o sistema recusa aplicativos sem assinatura: cliq
 com o **botao direito > Abrir** e confirme. Depois disso o duplo clique funciona
 normalmente.
 
+Se aparecer "O Docker nao esta rodando", suba o daemon: abra o **Docker Desktop**,
+ou, se voce instalou o docker pelo Homebrew, rode `colima start`.
+
 O atalho abre o Terminal de proposito, em vez de rodar em silencio: a primeira
 execucao baixa o modelo de IA (~4,7 GB) e leva alguns minutos, e sem uma janela
 com o progresso a impressao seria a de que nada aconteceu. Nas vezes seguintes o

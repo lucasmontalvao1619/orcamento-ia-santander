@@ -10,7 +10,14 @@ COMPOSE="docker compose -f docker/docker-compose.yml"
 
 if ! docker info > /dev/null 2>&1; then
     echo "O Docker nao esta rodando."
-    echo "Abra o Docker Desktop e execute este arquivo de novo."
+    # Nem todo mundo usa Docker Desktop: quem instalou o docker pelo Homebrew
+    # normalmente sobe o daemon com o Colima, e a mensagem de "abra o Docker
+    # Desktop" nao ajudaria em nada.
+    if command -v colima > /dev/null 2>&1; then
+        echo "Suba o daemon com:  colima start"
+    else
+        echo "Abra o Docker Desktop e execute este arquivo de novo."
+    fi
     exit 1
 fi
 
