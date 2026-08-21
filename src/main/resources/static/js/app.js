@@ -818,7 +818,7 @@ el('abas').addEventListener('click', (e) => {
 
     // Recarrega ao abrir a aba, e nao no carregamento da pagina: e assim que a
     // tabela fica sempre atual sem precisar de botao de atualizar.
-    if (aba === 'fixos') { preencherCategoriasDoFixo(); carregarFixos(); }
+    if (aba === 'fixos') { preencherCategoriasDoFixo(); carregarFixos(); carregarFecharMes(); }
     if (aba === 'resumo') carregarResumo();
 });
 
@@ -918,6 +918,92 @@ el('filtro-resumo').addEventListener('click', (e) => {
     carregarResumo();
 });
 
+// A tela de fechar o mes: uma linha por conta, um campo de valor em cada, e um
+// botao so. Sem isso, fechar um mes com oito contas eram oito dialogos.
+async function carregarFecharMes() {
+    const area = el('fechar-mes');
+    try {
+        const itens = await (await fetch('/api/fixos/mes')).json();
+        if (!itens.length) {
+            area.innerHTML = '<p class="vazio">Cadastre itens fixos para fechar o mês por aqui.</p>';
+            el('botao-fechar-mes').hidden = true;
+            return;
+        }
+        const pendentes = itens.filter((i) => !i.jaLancado);
+        el('botao-fechar-mes').hidden = pendentes.length === 0;
+
+        const linha = (i) => `
+            <tr class="${i.jaLancado ? 'lancada' : ''}">
+                <td>
+                    ${texto(i.descricao)}
+                    ${i.diaVencimento ? `<span class="dia">dia ${i.diaVencimento}</span>` : ''}
+                </td>
+                <td><span class="etiqueta">${texto(rotuloCategoria(i.categoria))}</span></td>
+                <td>${i.tipo === 'RECEITA' ? 'Ganho' : 'Gasto'}</td>
+                <td>${i.jaLancado
+                    ? `<span class="concluido">✓ lançado ${MOEDA.format(i.valorLancado)}</span>`
+                    : `<input type="number" step="0.01" min="0.01" class="valor-mes"
+                             data-item="${i.id}"
+                             placeholder="${i.valorPrevisto == null ? 'quanto veio?' : Number(i.valorPrevisto).toFixed(2)}">`}
+                </td>
+            </tr>`;
+
+        area.innerHTML = `<table class="tabela"><thead><tr>
+            <th>Conta</th><th>Categoria</th><th>Tipo</th><th>Valor deste mês</th>
+            </tr></thead><tbody>${itens.map(linha).join('')}</tbody></table>`;
+    } catch {
+        area.innerHTML = '<p class="vazio">Não foi possível carregar as contas do mês.</p>';
+    }
+}
+
+el('botao-fechar-mes').addEventListener('click', async () => {
+    const campos = [...document.querySelectorAll('.valor-mes')];
+    const valores = {};
+    let semValor = [];
+
+    campos.forEach((c) => {
+        const digitado = c.value.trim();
+        if (digitado === '') {
+            // Vazio significa "usar a previsao". Quem nao tem previsao precisa
+            // de valor: lancar sem saber quanto foi encheria o saldo de chute.
+            if (c.placeholder === 'quanto veio?') {
+                semValor.push(c.closest('tr').firstElementChild.textContent.trim());
+                return;
+            }
+            valores[c.dataset.item] = null;
+        } else {
+            valores[c.dataset.item] = Number(digitado.replace(',', '.'));
+        }
+    });
+
+    if (!Object.keys(valores).length) {
+        notificar(semValor.length
+            ? 'Informe o valor das contas variáveis antes de fechar o mês.'
+            : 'Nada pendente neste mês.', 'erro');
+        return;
+    }
+
+    const botao = el('botao-fechar-mes');
+    botao.disabled = true;
+    try {
+        const r = await fetch('/api/fixos/fechar-mes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ valores })
+        });
+        if (!r.ok) throw new Error((await r.json()).detail || 'Não foi possível fechar o mês.');
+        const lancados = await r.json();
+        await Promise.all([carregarFecharMes(), carregarTransacoes(), carregarResumo()]);
+        notificar(semValor.length
+            ? `${lancados.length} conta(s) lançada(s). Faltou o valor de: ${semValor.join(', ')}.`
+            : `${lancados.length} conta(s) lançada(s). Mês fechado.`, 'ok');
+    } catch (falha) {
+        notificar(falha.message, 'erro');
+    } finally {
+        botao.disabled = false;
+    }
+});
+
 el('form-fixo').addEventListener('submit', async (e) => {
     e.preventDefault();
     const erro = el('erro-fixo');
@@ -972,7 +1058,7 @@ el('lista-fixos').addEventListener('click', async (e) => {
                 body: JSON.stringify({ valor })
             });
             if (!r.ok) throw new Error((await r.json()).detail || 'Não foi possível lançar.');
-            await Promise.all([carregarTransacoes(), carregarResumo()]);
+            await Promise.all([carregarTransacoes(), carregarResumo(), carregarFecharMes()]);
             notificar('Lançado no orçamento.', 'ok');
         } catch (falha) {
             notificar(falha.message, 'erro');

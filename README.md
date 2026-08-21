@@ -144,14 +144,14 @@ O modelo nao escreve no banco. Ele escolhe **qual funcao Java chamar e com quais
 argumentos** — isso e o **Tool Calling**. Quem executa e a aplicacao, passando
 pelas mesmas regras de negocio da API REST.
 
-Sao 22 ferramentas expostas ao modelo, e o interpretador proprio cobre todas:
+Sao 24 ferramentas expostas ao modelo, e o interpretador proprio cobre todas:
 
 | Area | Ferramentas |
 |------|-------------|
 | Transacoes | registrar, atualizar, apagar, listar |
 | Consultas | saldo, gasto por categoria |
 | Salario | definir, consultar, declarar que nao ha salario fixo |
-| Fixos | cadastrar ganho, cadastrar gasto, listar, lancar valor real, apagar |
+| Fixos | cadastrar ganho, cadastrar gasto, listar, lancar valor real, apagar, contas do mes, fechar o mes |
 | Resumo | tabela de gastos por modalidade, com totais e percentuais |
 | Porquinho | guardar, retirar, consultar, listar movimentos, apagar movimento |
 | App | recursos disponiveis, autor do projeto |
@@ -311,6 +311,8 @@ por `/api/sobre`, alem de alimentar a ferramenta que responde quem fez o projeto
 | GET | `/api/fixos` | Lista os itens fixos |
 | POST | `/api/fixos/{id}/lancar` | Lanca a conta do mes com o valor real |
 | DELETE | `/api/fixos/{id}` | Apaga um item fixo |
+| GET | `/api/fixos/mes` | Contas do mes, com o que ja foi lancado |
+| POST | `/api/fixos/fechar-mes` | Lanca todas as contas do mes de uma vez |
 | GET | `/api/resumo` | Tabela de gastos por modalidade |
 | PUT | `/api/configuracao/salario` | Define ou altera o salario e o dia |
 | PUT | `/api/configuracao/sem-salario` | Declara que nao ha salario fixo |
@@ -356,7 +358,7 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-171 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+175 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
 de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
 endpoints — inclusive os status 400, 404,

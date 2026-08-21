@@ -28,6 +28,15 @@ public class Transacao {
 
     private LocalDateTime dataHora;
 
+    // De qual item fixo este lancamento veio, quando veio de um.
+    //
+    // Sem esse vinculo, saber se a conta de luz ja foi paga neste mes exigiria
+    // comparar descricao e categoria — e um lancamento manual com o mesmo nome
+    // passaria por conta paga. Fica nulo em lancamento avulso, entao a coluna e
+    // opcional: coluna NOT NULL nova quebraria a atualizacao de quem ja usa o
+    // aplicativo.
+    private Long recorrenteId;
+
     public Transacao() {
         this.dataHora = LocalDateTime.now();
     }
@@ -86,5 +95,13 @@ public class Transacao {
 
     public void setDataHora(LocalDateTime dataHora) {
         this.dataHora = dataHora;
+    }
+
+    public Long getRecorrenteId() {
+        return recorrenteId;
+    }
+
+    public void setRecorrenteId(Long recorrenteId) {
+        this.recorrenteId = recorrenteId;
     }
 }

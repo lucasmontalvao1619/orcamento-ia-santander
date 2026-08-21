@@ -94,6 +94,79 @@ public class FixosTools {
                 t.getTipo(), t.getValor(), t.getCategoria(), t.getDescricao());
     }
 
+    @Tool(description = "Mostra o que falta pagar ou receber neste mes entre os itens fixos, e o "
+            + "que ja foi lancado. Use quando perguntarem quais contas faltam, o que falta pagar, "
+            + "ou como esta o mes.")
+    public String contasDoMes() {
+        List<Recorrente> itens = recorrentes.listarTodos();
+        if (itens.isEmpty()) {
+            return "Nenhum item fixo cadastrado ainda.";
+        }
+        StringBuilder pendentes = new StringBuilder();
+        StringBuilder pagos = new StringBuilder();
+        BigDecimal aPagar = BigDecimal.ZERO;
+        for (Recorrente i : itens) {
+            var lancado = recorrentes.lancamentoDoMes(i.getId());
+            if (lancado.isPresent()) {
+                pagos.append(String.format(BR, "- [%d] %s: R$ %.2f%n",
+                        i.getId(), i.getDescricao(), lancado.get().getValor()));
+            } else {
+                pendentes.append(String.format(BR, "- [%d] %s: %s%n", i.getId(), i.getDescricao(),
+                        i.getValorPrevisto() == null
+                                ? "valor variavel, informe ao lancar"
+                                : String.format(BR, "previsto R$ %.2f", i.getValorPrevisto())));
+                if (i.getTipo() == TipoTransacao.DESPESA && i.getValorPrevisto() != null) {
+                    aPagar = aPagar.add(i.getValorPrevisto());
+                }
+            }
+        }
+        StringBuilder r = new StringBuilder();
+        if (pendentes.length() > 0) {
+            r.append("Falta lancar neste mes:\n").append(pendentes);
+            r.append(String.format(BR, "Previsto a pagar: R$ %.2f.%n", aPagar));
+        } else {
+            r.append("Tudo lancado neste mes.\n");
+        }
+        if (pagos.length() > 0) {
+            r.append("Ja lancado:\n").append(pagos);
+        }
+        return r.toString();
+    }
+
+    @Tool(description = "Lanca de uma vez todos os itens fixos que ainda nao foram lancados neste "
+            + "mes, usando o valor previsto de cada um. Use quando o usuario disser para fechar o "
+            + "mes ou lancar tudo. Itens de valor variavel sem previsao ficam de fora e precisam "
+            + "ser lancados um a um com o valor real.")
+    public String fecharOMes() {
+        List<Recorrente> pendentes = recorrentes.listarTodos().stream()
+                .filter(r -> recorrentes.lancamentoDoMes(r.getId()).isEmpty())
+                .toList();
+
+        List<Recorrente> comPrevisao = pendentes.stream()
+                .filter(r -> r.getValorPrevisto() != null)
+                .toList();
+        List<Recorrente> semPrevisao = pendentes.stream()
+                .filter(r -> r.getValorPrevisto() == null)
+                .toList();
+
+        if (comPrevisao.isEmpty() && semPrevisao.isEmpty()) {
+            return "Nao ha nada pendente: tudo ja foi lancado neste mes.";
+        }
+
+        java.util.Map<Long, BigDecimal> valores = new java.util.LinkedHashMap<>();
+        comPrevisao.forEach(r -> valores.put(r.getId(), r.getValorPrevisto()));
+        int lancados = recorrentes.fecharMes(valores).size();
+
+        StringBuilder r = new StringBuilder(
+                String.format(BR, "%d item(ns) lancado(s) pelo valor previsto.", lancados));
+        if (!semPrevisao.isEmpty()) {
+            r.append(" Ficaram de fora, por terem valor variavel:");
+            semPrevisao.forEach(i -> r.append(String.format(BR, " [%d] %s;", i.getId(), i.getDescricao())));
+            r.append(" lance cada um com o valor real, ex: \"lancar 5 valor 143\".");
+        }
+        return r.toString();
+    }
+
     @Tool(description = "Apaga um ganho ou gasto fixo pelo id. Nao apaga os lancamentos ja feitos.")
     public String apagarFixo(@ToolParam(description = "Id do item fixo") Long id) {
         Recorrente r = recorrentes.apagar(id);

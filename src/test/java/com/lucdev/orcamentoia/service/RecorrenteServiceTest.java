@@ -3,7 +3,9 @@ package com.lucdev.orcamentoia.service;
 import com.lucdev.orcamentoia.exception.RecursoNaoEncontradoException;
 import com.lucdev.orcamentoia.model.Recorrente;
 import com.lucdev.orcamentoia.model.TipoTransacao;
+import com.lucdev.orcamentoia.model.Transacao;
 import com.lucdev.orcamentoia.repository.RecorrenteRepository;
+import com.lucdev.orcamentoia.repository.TransacaoRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,6 +34,9 @@ class RecorrenteServiceTest {
 
     @Mock
     private TransacaoService transacaoService;
+
+    @Mock
+    private TransacaoRepository transacaoRepository;
 
     @InjectMocks
     private RecorrenteService servico;
@@ -75,6 +80,10 @@ class RecorrenteServiceTest {
         Recorrente luz = new Recorrente("Conta de luz", "moradia", TipoTransacao.DESPESA,
                 new BigDecimal("120.00"), 10);
         when(repository.findById(1L)).thenReturn(Optional.of(luz));
+        // lancar guarda o vinculo com o item fixo antes de devolver.
+        when(transacaoService.registrar(any(), any(), any(), any()))
+                .thenAnswer(i -> new Transacao("Conta de luz", i.getArgument(1), "moradia", TipoTransacao.DESPESA));
+        when(transacaoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         servico.lancar(1L, new BigDecimal("143.27"));
 
@@ -87,6 +96,9 @@ class RecorrenteServiceTest {
         Recorrente net = new Recorrente("Internet", "moradia", TipoTransacao.DESPESA,
                 new BigDecimal("120.00"), 10);
         when(repository.findById(1L)).thenReturn(Optional.of(net));
+        when(transacaoService.registrar(any(), any(), any(), any()))
+                .thenAnswer(i -> new Transacao("Internet", i.getArgument(1), "moradia", TipoTransacao.DESPESA));
+        when(transacaoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         servico.lancar(1L, null);
 
@@ -124,5 +136,68 @@ class RecorrenteServiceTest {
 
         assertThat(servico.totalPrevisto(TipoTransacao.DESPESA)).isEqualByComparingTo("200.00");
         assertThat(servico.quantidadeSemPrevisao(TipoTransacao.DESPESA)).isEqualTo(1);
+    }
+
+    // --- fechar o mes --------------------------------------------------------
+
+    private Transacao lancamento(Long recorrenteId, String valor, java.time.LocalDateTime quando) {
+        Transacao t = new Transacao("x", new BigDecimal(valor), "moradia", TipoTransacao.DESPESA);
+        t.setRecorrenteId(recorrenteId);
+        t.setDataHora(quando);
+        return t;
+    }
+
+    // Clicar duas vezes em "fechar o mes" nao pode dobrar a conta de luz — e o
+    // usuario so descobriria olhando o saldo errado depois.
+    @Test
+    void fecharMesPulaOQueJaFoiLancadoNesteMes() {
+        Recorrente luz = new Recorrente("Luz", "moradia", TipoTransacao.DESPESA, new BigDecimal("120"), 10);
+        luz.setId(1L);
+        when(transacaoRepository.findByRecorrenteIdIsNotNull())
+                .thenReturn(List.of(lancamento(1L, "143.00", java.time.LocalDateTime.now())));
+
+        List<Transacao> lancados = servico.fecharMes(java.util.Map.of(1L, new BigDecimal("120")));
+
+        assertThat(lancados).isEmpty();
+        verify(transacaoService, org.mockito.Mockito.never()).registrar(any(), any(), any(), any());
+    }
+
+    // Lancamento do mes passado nao conta: a conta deste mes precisa ser paga.
+    @Test
+    void lancamentoDeOutroMesNaoBloqueia() {
+        Recorrente luz = new Recorrente("Luz", "moradia", TipoTransacao.DESPESA, new BigDecimal("120"), 10);
+        luz.setId(1L);
+        when(repository.findById(1L)).thenReturn(Optional.of(luz));
+        when(transacaoRepository.findByRecorrenteIdIsNotNull())
+                .thenReturn(List.of(lancamento(1L, "110.00", java.time.LocalDateTime.now().minusMonths(2))));
+        when(transacaoService.registrar(any(), any(), any(), any()))
+                .thenAnswer(i -> new Transacao("Luz", i.getArgument(1), "moradia", TipoTransacao.DESPESA));
+        when(transacaoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(servico.fecharMes(java.util.Map.of(1L, new BigDecimal("130")))).hasSize(1);
+    }
+
+    // O vinculo e por id, nunca por descricao: um lancamento manual chamado
+    // "Conta de luz" nao pode passar por conta paga.
+    @Test
+    void lancamentoDeOutroItemNaoContaComoPago() {
+        when(transacaoRepository.findByRecorrenteIdIsNotNull())
+                .thenReturn(List.of(lancamento(99L, "143.00", java.time.LocalDateTime.now())));
+
+        assertThat(servico.lancamentoDoMes(1L)).isEmpty();
+    }
+
+    @Test
+    void lancarGuardaOVinculoComOItemFixo() {
+        Recorrente luz = new Recorrente("Luz", "moradia", TipoTransacao.DESPESA, new BigDecimal("120"), 10);
+        luz.setId(7L);
+        when(repository.findById(7L)).thenReturn(Optional.of(luz));
+        when(transacaoService.registrar(any(), any(), any(), any()))
+                .thenAnswer(i -> new Transacao("Luz", i.getArgument(1), "moradia", TipoTransacao.DESPESA));
+        when(transacaoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Transacao t = servico.lancar(7L, new BigDecimal("143"));
+
+        assertThat(t.getRecorrenteId()).isEqualTo(7L);
     }
 }

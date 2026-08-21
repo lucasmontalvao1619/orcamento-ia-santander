@@ -176,6 +176,15 @@ public class InterpretadorDeComandos {
         boolean falaDeFixo = contem(t, "fixo", "todo mes", "todos os meses", "mensal", "recorrente",
                 "toda semana", "conta de");
 
+        // Fechar o mes e ver o que falta: antes da listagem, que e mais generica.
+        if (contem(t, "fecha o mes", "fechar o mes", "fecha mes", "lanca tudo", "lancar tudo",
+                "paga tudo", "pagar tudo")) {
+            return Optional.of(fixos.fecharOMes());
+        }
+        if (contem(t, "falta", "faltam", "pendente", "vencendo", "a pagar", "devo pagar")
+                || (contem(t, "como esta") && contem(t, "mes"))) {
+            return Optional.of(fixos.contasDoMes());
+        }
         if (contem(t, "lista", "listar", "quais", "meus", "ver") && falaDeFixo) {
             return Optional.of(fixos.listarFixos());
         }

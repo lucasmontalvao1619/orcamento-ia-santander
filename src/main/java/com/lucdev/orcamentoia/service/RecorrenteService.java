@@ -5,21 +5,61 @@ import com.lucdev.orcamentoia.model.Recorrente;
 import com.lucdev.orcamentoia.model.TipoTransacao;
 import com.lucdev.orcamentoia.model.Transacao;
 import com.lucdev.orcamentoia.repository.RecorrenteRepository;
+import com.lucdev.orcamentoia.repository.TransacaoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class RecorrenteService {
 
     private final RecorrenteRepository repository;
     private final TransacaoService transacaoService;
+    private final TransacaoRepository transacaoRepository;
 
-    public RecorrenteService(RecorrenteRepository repository, TransacaoService transacaoService) {
+    public RecorrenteService(RecorrenteRepository repository, TransacaoService transacaoService,
+                             TransacaoRepository transacaoRepository) {
         this.repository = repository;
         this.transacaoService = transacaoService;
+        this.transacaoRepository = transacaoRepository;
+    }
+
+    // O que este item fixo virou no mes corrente, se ja foi lancado.
+    //
+    // O vinculo e por id, e nao por descricao: um lancamento manual chamado
+    // "Conta de luz" nao pode passar por conta paga.
+    @Transactional(readOnly = true)
+    public Optional<Transacao> lancamentoDoMes(Long recorrenteId) {
+        LocalDate hoje = LocalDate.now();
+        return transacaoRepository.findByRecorrenteIdIsNotNull().stream()
+                .filter(t -> recorrenteId.equals(t.getRecorrenteId()))
+                .filter(t -> t.getDataHora() != null
+                        && t.getDataHora().getYear() == hoje.getYear()
+                        && t.getDataHora().getMonthValue() == hoje.getMonthValue())
+                .findFirst();
+    }
+
+    // Fecha o mes de uma vez: recebe os valores reais e lanca o que falta.
+    //
+    // Itens ja lancados no mes sao PULADOS, nao relancados. Sem isso, clicar
+    // duas vezes em "fechar o mes" dobraria a conta de luz — e o usuario so
+    // descobriria olhando o saldo errado depois.
+    @Transactional
+    public List<Transacao> fecharMes(Map<Long, BigDecimal> valores) {
+        List<Transacao> lancados = new ArrayList<>();
+        for (Map.Entry<Long, BigDecimal> e : valores.entrySet()) {
+            if (lancamentoDoMes(e.getKey()).isPresent()) {
+                continue;
+            }
+            lancados.add(lancar(e.getKey(), e.getValue()));
+        }
+        return lancados;
     }
 
     @Transactional
@@ -93,8 +133,10 @@ public class RecorrenteService {
                     "Informe o valor de \"" + recorrente.getDescricao()
                             + "\": este item nao tem previsao cadastrada.");
         }
-        return transacaoService.registrar(recorrente.getDescricao(), valor,
+        Transacao t = transacaoService.registrar(recorrente.getDescricao(), valor,
                 recorrente.getCategoria(), recorrente.getTipo());
+        t.setRecorrenteId(recorrente.getId());
+        return transacaoRepository.save(t);
     }
 
     // Quanto se espera pagar ou receber por mes, somando as previsoes. Itens sem
