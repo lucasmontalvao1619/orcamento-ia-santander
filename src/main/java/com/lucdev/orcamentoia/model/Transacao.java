@@ -37,6 +37,12 @@ public class Transacao {
     // aplicativo.
     private Long recorrenteId;
 
+    // De qual movimento do porquinho este lancamento veio, quando veio de um.
+    // Guardar dinheiro sai da conta e retirar volta para ela, entao cada
+    // movimento tem um lancamento correspondente. Opcional, como recorrenteId:
+    // coluna NOT NULL nova quebraria a atualizacao de quem ja usa o app.
+    private Long investimentoId;
+
     public Transacao() {
         this.dataHora = LocalDateTime.now();
     }
@@ -103,5 +109,13 @@ public class Transacao {
 
     public void setRecorrenteId(Long recorrenteId) {
         this.recorrenteId = recorrenteId;
+    }
+
+    public Long getInvestimentoId() {
+        return investimentoId;
+    }
+
+    public void setInvestimentoId(Long investimentoId) {
+        this.investimentoId = investimentoId;
     }
 }

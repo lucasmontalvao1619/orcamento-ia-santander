@@ -3,7 +3,10 @@ package com.lucdev.orcamentoia.service;
 import com.lucdev.orcamentoia.model.Investimento;
 import com.lucdev.orcamentoia.model.TipoInvestimento;
 import com.lucdev.orcamentoia.exception.RecursoNaoEncontradoException;
+import com.lucdev.orcamentoia.model.TipoTransacao;
+import com.lucdev.orcamentoia.model.Transacao;
 import com.lucdev.orcamentoia.repository.InvestimentoRepository;
+import com.lucdev.orcamentoia.repository.TransacaoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,13 +29,21 @@ public class InvestimentoService {
     private static final int DIAS_UTEIS_NO_ANO = 252;
     private static final MathContext PRECISAO = new MathContext(20, RoundingMode.HALF_EVEN);
 
+    // Categoria dos lancamentos espelho. Aparece no resumo como modalidade
+    // propria: guardar dinheiro nao e "gasto com lazer", e saber quanto foi
+    // para o porquinho e informacao util.
+    public static final String CATEGORIA_PORQUINHO = "porquinho";
+
     private final InvestimentoRepository repository;
     private final BigDecimal cdiAnual;
+    private final TransacaoRepository transacaoRepository;
 
     public InvestimentoService(InvestimentoRepository repository,
-                               @Value("${investimentos.cdi-anual:0.1065}") BigDecimal cdiAnual) {
+                               @Value("${investimentos.cdi-anual:0.1065}") BigDecimal cdiAnual,
+                               TransacaoRepository transacaoRepository) {
         this.repository = repository;
         this.cdiAnual = cdiAnual;
+        this.transacaoRepository = transacaoRepository;
     }
 
     @Transactional
@@ -50,7 +61,22 @@ public class InvestimentoService {
                                 + disponivel.setScale(2, RoundingMode.HALF_EVEN) + ".");
             }
         }
-        return repository.save(new Investimento(descricao, valor, tipo));
+        Investimento movimento = repository.save(new Investimento(descricao, valor, tipo));
+
+        // O dinheiro precisa sair da conta ao ser guardado e voltar ao ser
+        // retirado. Sem isso o porquinho e um numero paralelo: retirar nao
+        // devolveria nada ao saldo, e guardar nao custaria nada — dinheiro
+        // aparecendo e sumindo do orcamento sem explicacao.
+        Transacao espelho = new Transacao(
+                (tipo == TipoInvestimento.APORTE ? "Guardado no porquinho: " : "Retirado do porquinho: ")
+                        + descricao,
+                valor,
+                CATEGORIA_PORQUINHO,
+                tipo == TipoInvestimento.APORTE ? TipoTransacao.DESPESA : TipoTransacao.RECEITA);
+        espelho.setInvestimentoId(movimento.getId());
+        transacaoRepository.save(espelho);
+
+        return movimento;
     }
 
     @Transactional
@@ -58,6 +84,10 @@ public class InvestimentoService {
         Investimento investimento = repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Nao existe movimento de investimento com o id " + id + "."));
+        // O lancamento espelho sai junto: deixa-lo faria o saldo continuar
+        // descontando um dinheiro que voltou para a conta.
+        transacaoRepository.findByInvestimentoId(id).ifPresent(transacaoRepository::delete);
+
         repository.delete(investimento);
         return investimento;
     }

@@ -3,6 +3,7 @@ package com.lucdev.orcamentoia.service;
 import com.lucdev.orcamentoia.model.Investimento;
 import com.lucdev.orcamentoia.model.TipoInvestimento;
 import com.lucdev.orcamentoia.repository.InvestimentoRepository;
+import com.lucdev.orcamentoia.repository.TransacaoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,11 @@ class InvestimentoServiceTest {
     @Mock
     private InvestimentoRepository repository;
 
+    // Guardar e retirar movem dinheiro no orcamento: cada movimento gera um
+    // lancamento espelho.
+    @Mock
+    private TransacaoRepository transacaoRepository;
+
     private InvestimentoService service;
 
     // 10,65% ao ano, a mesma taxa default da aplicacao.
@@ -36,7 +42,7 @@ class InvestimentoServiceTest {
 
     @BeforeEach
     void criarServico() {
-        service = new InvestimentoService(repository, CDI);
+        service = new InvestimentoService(repository, CDI, transacaoRepository);
     }
 
     private Investimento comData(Investimento investimento, LocalDateTime data) {
@@ -152,5 +158,86 @@ class InvestimentoServiceTest {
                 .hasMessageContaining("positivo");
 
         verify(repository, never()).save(any());
+    }
+
+    // --- o dinheiro precisa se mover no orcamento ---------------------------
+
+    // Guardar tira da conta. Sem isso, guardar nao custaria nada e o dinheiro
+    // apareceria em dois lugares ao mesmo tempo.
+    @Test
+    void guardarGeraUmaSaidaNoOrcamento() {
+        when(repository.save(any())).thenAnswer(i -> {
+            com.lucdev.orcamentoia.model.Investimento inv = i.getArgument(0);
+            inv.setId(1L);
+            return inv;
+        });
+
+        service.registrar("Viagem", new BigDecimal("200.00"), TipoInvestimento.APORTE);
+
+        org.mockito.ArgumentCaptor<com.lucdev.orcamentoia.model.Transacao> captor =
+                org.mockito.ArgumentCaptor.forClass(com.lucdev.orcamentoia.model.Transacao.class);
+        verify(transacaoRepository).save(captor.capture());
+        assertThat(captor.getValue().getTipo())
+                .isEqualTo(com.lucdev.orcamentoia.model.TipoTransacao.DESPESA);
+        assertThat(captor.getValue().getValor()).isEqualByComparingTo("200.00");
+        assertThat(captor.getValue().getInvestimentoId()).isEqualTo(1L);
+    }
+
+    // O pedido original: retirar devolve o dinheiro para a conta.
+    @Test
+    void retirarDevolveODinheiroParaAConta() {
+        when(repository.findAll()).thenReturn(List.of(
+                comData(aporte("500.00"), LocalDateTime.now().minusDays(1))));
+        when(repository.save(any())).thenAnswer(i -> {
+            com.lucdev.orcamentoia.model.Investimento inv = i.getArgument(0);
+            inv.setId(2L);
+            return inv;
+        });
+
+        service.registrar("Emergencia", new BigDecimal("100.00"), TipoInvestimento.RETIRADA);
+
+        org.mockito.ArgumentCaptor<com.lucdev.orcamentoia.model.Transacao> captor =
+                org.mockito.ArgumentCaptor.forClass(com.lucdev.orcamentoia.model.Transacao.class);
+        verify(transacaoRepository).save(captor.capture());
+        assertThat(captor.getValue().getTipo())
+                .isEqualTo(com.lucdev.orcamentoia.model.TipoTransacao.RECEITA);
+        assertThat(captor.getValue().getValor()).isEqualByComparingTo("100.00");
+    }
+
+    // Apagar o movimento apaga o espelho: deixa-lo faria o saldo continuar
+    // descontando um dinheiro que voltou para a conta.
+    @Test
+    void apagarOMovimentoApagaOLancamentoEspelho() {
+        com.lucdev.orcamentoia.model.Investimento inv =
+                comData(aporte("100.00"), LocalDateTime.now());
+        inv.setId(7L);
+        com.lucdev.orcamentoia.model.Transacao espelho =
+                new com.lucdev.orcamentoia.model.Transacao("Guardado", new BigDecimal("100.00"),
+                        InvestimentoService.CATEGORIA_PORQUINHO,
+                        com.lucdev.orcamentoia.model.TipoTransacao.DESPESA);
+        when(repository.findById(7L)).thenReturn(java.util.Optional.of(inv));
+        when(transacaoRepository.findByInvestimentoId(7L)).thenReturn(java.util.Optional.of(espelho));
+
+        service.apagar(7L);
+
+        verify(transacaoRepository).delete(espelho);
+    }
+
+    @Test
+    void oLancamentoEspelhoUsaCategoriaPropria() {
+        when(repository.save(any())).thenAnswer(i -> {
+            com.lucdev.orcamentoia.model.Investimento inv = i.getArgument(0);
+            inv.setId(1L);
+            return inv;
+        });
+
+        service.registrar("Reserva", new BigDecimal("50.00"), TipoInvestimento.APORTE);
+
+        org.mockito.ArgumentCaptor<com.lucdev.orcamentoia.model.Transacao> captor =
+                org.mockito.ArgumentCaptor.forClass(com.lucdev.orcamentoia.model.Transacao.class);
+        verify(transacaoRepository).save(captor.capture());
+        // Guardar dinheiro nao e "gasto com lazer": categoria propria deixa o
+        // resumo por modalidade honesto.
+        assertThat(captor.getValue().getCategoria()).isEqualTo(InvestimentoService.CATEGORIA_PORQUINHO);
     }
 }

@@ -248,8 +248,11 @@ acabou de dizer que nao recebe.
 **O salario nao duplica no saldo.** A configuracao guarda o id da receita de
 salario; alterar o valor atualiza aquela transacao em vez de criar outra.
 
-**O porquinho e um controle a parte.** Guardar dinheiro nao reduz o saldo do
-orcamento: sao dois totais paralelos. O rendimento e calculado percorrendo os
+**O porquinho move dinheiro de verdade.** Guardar sai da conta, retirar volta
+para ela — cada movimento gera um lancamento espelho na categoria `porquinho`,
+vinculado por id. Antes os dois totais eram paralelos: retirar nao devolvia nada
+ao saldo e guardar nao custava nada, entao o dinheiro aparecia em dois lugares ao
+mesmo tempo. Apagar o movimento apaga o lancamento junto. O rendimento e calculado percorrendo os
 movimentos em ordem e corrigindo o saldo entre um e outro, entao o que rendeu
 tambem rende. Dias uteis (252/ano); feriados sao ignorados de proposito.
 
@@ -358,7 +361,7 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-175 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+188 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
 de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
 endpoints — inclusive os status 400, 404,

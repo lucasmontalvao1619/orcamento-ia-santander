@@ -11,6 +11,8 @@ public interface TransacaoRepository extends JpaRepository<Transacao, Long> {
     // Lancamentos vindos de itens fixos, para saber o que ja foi pago no mes.
     java.util.List<Transacao> findByRecorrenteIdIsNotNull();
 
+    java.util.Optional<Transacao> findByInvestimentoId(Long investimentoId);
+
     List<Transacao> findByTipo(TipoTransacao tipo);
 
     List<Transacao> findByCategoriaIgnoreCase(String categoria);
