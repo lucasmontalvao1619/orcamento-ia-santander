@@ -13,20 +13,29 @@ e uma variavel de ambiente.
 
 ## Como executar
 
-### Opcao 1 — Docker (recomendado)
+### Opcao 1 — Dois cliques (recomendado)
 
 Requer apenas o **Docker** instalado e aberto. Nao precisa de Java, Maven nem Ollama.
 
-```bash
-./iniciar.sh          # macOS e Linux
-iniciar.bat           # Windows
-```
+Na raiz do projeto ha um item para clicar, um por sistema:
 
-O script sobe tres servicos: o modelo de IA, o download do modelo e a aplicacao.
-Na primeira execucao o modelo e baixado (~4,7 GB) e isso leva alguns minutos; nas
-seguintes ele ja esta no volume e a subida e rapida.
+| Sistema | Clique em |
+|---------|-----------|
+| macOS | **Iniciar Orcamento IA** (o icone do porquinho) |
+| Windows | **Iniciar Orcamento IA.bat** |
+| Terminal | `scripts/iniciar.sh` |
 
-Depois abra **http://localhost:8080**. Para encerrar, `./parar.sh`.
+No macOS, na **primeira vez**, o sistema recusa aplicativos sem assinatura: clique
+com o **botao direito > Abrir** e confirme. Depois disso o duplo clique funciona
+normalmente.
+
+O atalho abre o Terminal de proposito, em vez de rodar em silencio: a primeira
+execucao baixa o modelo de IA (~4,7 GB) e leva alguns minutos, e sem uma janela
+com o progresso a impressao seria a de que nada aconteceu. Nas vezes seguintes o
+modelo ja esta no volume e a subida e rapida.
+
+Quando fica pronto, o navegador abre em **http://localhost:8080** sozinho. Para
+encerrar, `scripts/parar.sh`.
 
 Cada instalacao comeca com o **orcamento zerado**: o volume de dados nasce vazio,
 e a aplicacao pergunta o salario no primeiro acesso.
@@ -48,7 +57,8 @@ ollama pull qwen2.5        # baixa o modelo (~4,7 GB, so na primeira vez)
 A aplicacao e um **PWA**: da para instalar na tela inicial e usar como um app,
 com icone proprio e sem a barra do navegador.
 
-1. Suba a aplicacao no computador (`./iniciar.sh`). O script imprime o endereco
+1. Suba a aplicacao no computador (o atalho **Iniciar Orcamento IA**). Ele
+   imprime o endereco
    da maquina na rede local, algo como `http://192.168.0.10:8080`.
 2. No celular, **na mesma rede Wi-Fi**, abra esse endereco no navegador.
 3. Instale: no Android, menu do Chrome > *Instalar aplicativo*. No iOS, botao de
@@ -65,11 +75,11 @@ funciona no Safari do iOS, onde o campo de texto continua disponivel.
 ### Gerar o zip para distribuir
 
 ```bash
-./empacotar.sh
+scripts/empacotar.sh
 ```
 
-Produz `dist/orcamento-ia.zip` (~96 KB) sem build, sem dados e sem historico do
-git. Quem receber extrai e roda `./iniciar.sh` — o orcamento comeca zerado.
+Produz `dist/orcamento-ia.zip` sem build, sem dados e sem historico do git. Quem
+receber extrai e da dois cliques no atalho — o orcamento comeca zerado.
 
 ### Usando a OpenAI no lugar do modelo local
 
@@ -93,7 +103,7 @@ O modelo nao escreve no banco. Ele escolhe **qual funcao Java chamar e com quais
 argumentos** — isso e o **Tool Calling**. Quem executa e a aplicacao, passando
 pelas mesmas regras de negocio da API REST.
 
-Sao 13 ferramentas expostas ao modelo:
+Sao 15 ferramentas expostas ao modelo:
 
 | Area | Ferramentas |
 |------|-------------|
@@ -158,6 +168,11 @@ sem historico a ferramenta e chamada e o valor muda; com historico o modelo apen
 descreve o que faria. Um erro silencioso desses e pior que a falta do recurso.
 Com um modelo maior, ligue com `ASSISTENTE_MEMORIA=true`.
 
+**O nome do projeto no Docker e fixo.** O `docker-compose.yml` declara
+`name: orcamento-ia` em vez de deixar o Compose usar o nome da pasta. Sem isso,
+mover ou renomear a pasta mudaria o nome do volume e os lancamentos sumiriam —
+continuariam existindo, so que num volume que ninguem mais monta.
+
 **A autoria tem fonte unica no backend** (`config/Autoria`) e chega a interface
 por `/api/sobre`, alem de alimentar a ferramenta que responde quem fez o projeto.
 
@@ -214,29 +229,44 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-Cobrem saldo, validacao, configuracao de salario, rendimento do porquinho,
-correcao e exclusao, as ferramentas de Tool Calling e o contrato HTTP. Nao
-dependem de rede, de chave de API nem do Ollama.
+82 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
+de audio e o contrato HTTP de todos os endpoints — inclusive os status 400, 404,
+502 e 503. Nao dependem de rede, de chave de API nem do Ollama.
+
+Os testes usam um banco **em memoria**, configurado em
+`src/test/resources/application.properties`. Sem esse arquivo eles herdariam a
+configuracao de producao e escreveriam no banco em arquivo — ou seja, rodar a
+suite mexeria nos lancamentos reais de quem estivesse usando o aplicativo.
 
 ---
 
 ## Estrutura
 
 ```
-├── Dockerfile / docker-compose.yml     # Execucao em container
-├── iniciar.sh / parar.sh / iniciar.bat # Atalhos de uso
-└── src/main/
-    ├── java/com/lucdev/orcamentoia/
-    │   ├── config/       # ChatClient, system prompt e autoria
-    │   ├── controller/   # Assistente, transacoes, investimentos, configuracao
-    │   ├── dto/
-    │   ├── exception/    # Erros centralizados em ProblemDetail
-    │   ├── model/
-    │   ├── repository/
-    │   ├── service/      # Regras de negocio
-    │   └── tool/         # Funcoes expostas ao Tool Calling
-    └── resources/static/ # Interface web (sem build step)
+├── Iniciar Orcamento IA.app      # Atalho do macOS: duplo clique e pronto
+├── Iniciar Orcamento IA.bat      # O mesmo atalho no Windows
+├── docker/                       # Dockerfile e docker-compose.yml
+├── scripts/                      # iniciar, parar e empacotar
+├── src/
+│   ├── main/
+│   │   ├── java/com/lucdev/orcamentoia/
+│   │   │   ├── config/           # ChatClient, system prompt e autoria
+│   │   │   ├── controller/       # Assistente, transacoes, investimentos, configuracao
+│   │   │   ├── dto/
+│   │   │   ├── exception/        # Erros centralizados em ProblemDetail
+│   │   │   ├── model/
+│   │   │   ├── repository/
+│   │   │   ├── service/          # Regras de negocio
+│   │   │   └── tool/             # Funcoes expostas ao Tool Calling
+│   │   └── resources/static/     # Interface web (sem build step)
+│   └── test/                     # Testes espelhando a estrutura acima
+└── dados/                        # Banco H2 local (nao versionado)
 ```
+
+A raiz guarda so o que precisa estar a vista: o atalho para iniciar, o README e
+os arquivos do Maven. O resto e detalhe de execucao e mora em `docker/` e
+`scripts/`.
 
 ## Autor
 
