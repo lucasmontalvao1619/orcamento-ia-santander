@@ -112,7 +112,9 @@ class AssistenteServiceTest {
 
         assertThat(resposta)
                 .contains("registrada com sucesso")
-                // O usuario precisa saber que a chave dele nao funcionou.
-                .contains("interpretador local");
+                // O usuario precisa saber que a chave dele nao funcionou, e por que:
+                // sem credito e chave errada pedem acoes opostas.
+                .contains("interpretador local")
+                .contains("conta sem credito");
     }
 }

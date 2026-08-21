@@ -71,9 +71,22 @@ public class AssistenteService {
 
     // Anexado a resposta quando a IA falhou e o interpretador salvou o comando:
     // sem isto, o usuario acharia que a chave esta funcionando.
-    private static final String AVISO_SEM_IA =
-            "\n\n(A OpenAI recusou a chamada — provavelmente conta sem credito. "
-            + "Este comando foi atendido pelo interpretador local.)";
+    //
+    // O motivo vem do erro real, e nao de um palpite: conta sem credito e chave
+    // invalida pedem acoes opostas, e chutar "sem credito" mandaria quem digitou
+    // a chave errada procurar no lugar errado.
+    private static String avisoDeFallback(String causa) {
+        String motivo;
+        if (causa != null && causa.contains("insufficient_quota")) {
+            motivo = "conta sem credito";
+        } else if (causa != null && (causa.contains("invalid_api_key") || causa.contains("Incorrect API key"))) {
+            motivo = "chave recusada";
+        } else {
+            motivo = "falha na chamada";
+        }
+        return "\n\n(A OpenAI nao respondeu — " + motivo
+                + ". Este comando foi atendido pelo interpretador local.)";
+    }
 
     public String processarComando(String textoUsuario) {
         // Sem chave da OpenAI nao ha modelo para interpretar a frase, mas o
@@ -100,7 +113,7 @@ public class AssistenteService {
             // usar o assistente, e o app sabe executar isto sozinho.
             log.warn("Provedor de IA recusou; usando o interpretador proprio.", e);
             return interpretador.interpretar(textoUsuario)
-                    .map(r -> r + AVISO_SEM_IA)
+                    .map(r -> r + avisoDeFallback(e.getMessage()))
                     .orElseThrow(() -> e);
         }
     }
