@@ -2,7 +2,10 @@
 # Encerra o Fast Finance Helper, tenha ele subido por container ou em modo local.
 cd "$(dirname "$0")/.."
 
-PORTA=8080
+# A aplicacao pode ter subido em qualquer porta a partir da 8080, se a padrao
+# estivesse ocupada. Encerrar so a 8080 deixaria o programa rodando invisivel.
+PORTA_INICIAL=8080
+PORTAS_TENTADAS=20
 parou=0
 
 # --- Modo Docker ------------------------------------------------------------
@@ -21,7 +24,16 @@ fi
 # adivinhar pelo nome do comando. O -sTCP:LISTEN e obrigatorio: sem ele o lsof
 # devolve tambem quem esta CONECTADO na porta — o navegador do usuario com a
 # aplicacao aberta — e o kill levaria o navegador junto.
-PIDS=$(lsof -ti:"$PORTA" -sTCP:LISTEN 2>/dev/null)
+PIDS=""
+for p in $(seq "$PORTA_INICIAL" $((PORTA_INICIAL + PORTAS_TENTADAS - 1))); do
+    # Confirma que quem escuta e a nossa aplicacao antes de encerrar: outro
+    # programa pode estar legitimamente numa porta vizinha.
+    if curl -s -m 1 "http://localhost:$p/api/sobre" 2>/dev/null | grep -q "Fast Finance Helper"; then
+        PIDS="$PIDS $(lsof -ti:"$p" -sTCP:LISTEN 2>/dev/null)"
+        PORTA="$p"
+    fi
+done
+PIDS=$(echo "$PIDS" | tr -s ' ' | sed 's/^ //')
 if [ -n "$PIDS" ]; then
     # shellcheck disable=SC2086
     kill $PIDS 2>/dev/null

@@ -181,4 +181,121 @@ class InterpretadorDeComandosTest {
         assertThat(interpretador.interpretar("   ")).isEmpty();
         assertThat(interpretador.interpretar(null)).isEmpty();
     }
+
+    // --- repertorio ampliado -------------------------------------------------
+
+    @Test
+    void respondeSaudacaoSemMexerEmDinheiro() {
+        assertThat(interpretador.interpretar("ola")).isPresent();
+        assertThat(interpretador.interpretar("bom dia")).isPresent();
+        verifyNoInteractions(financas, investimentos);
+    }
+
+    @Test
+    void pedidoDeAjudaListaOsComandos() {
+        assertThat(interpretador.interpretar("me ajuda")).get().asString().contains("gastei 60 no uber");
+        assertThat(interpretador.interpretar("quais os comandos")).isPresent();
+    }
+
+    @Test
+    void agradecimentoEDespedidaTemResposta() {
+        assertThat(interpretador.interpretar("obrigado")).isPresent();
+        assertThat(interpretador.interpretar("tchau")).isPresent();
+    }
+
+    // Recurso que existia so como botao na tela: sem isto, quem nao tem salario
+    // nao conseguiria declarar isso pelo assistente.
+    @Test
+    void declaraQueNaoTemSalarioFixo() {
+        when(financas.declararQueNaoTenhoSalario()).thenReturn("ok");
+
+        assertThat(interpretador.interpretar("nao tenho salario fixo")).contains("ok");
+        assertThat(interpretador.interpretar("sou autonomo, salario variavel")).contains("ok");
+    }
+
+    @Test
+    void reconheceMuitasFormasDePerguntarOSaldo() {
+        when(financas.consultarSaldo()).thenReturn("saldo");
+
+        for (String frase : new String[]{"qual e o meu saldo", "quanto eu tenho", "como estou",
+                "estou no vermelho", "quanto sobrou", "me da um resumo", "posso gastar"}) {
+            assertThat(interpretador.interpretar(frase)).as(frase).contains("saldo");
+        }
+    }
+
+    @Test
+    void reconheceMaisVerbosDeDespesa() {
+        when(financas.registrarTransacao(any(), any(), any(), any())).thenReturn("ok");
+
+        for (String frase : new String[]{"torrei 40 no cinema", "saiu 40 de netflix",
+                "custou 40 o show", "comprei 40 de livro"}) {
+            assertThat(interpretador.interpretar(frase)).as(frase).contains("ok");
+        }
+        verify(financas, org.mockito.Mockito.times(4))
+                .registrarTransacao(any(), any(), eq("lazer"), eq(TipoTransacao.DESPESA));
+    }
+
+    @Test
+    void reconheceMaisVerbosDeReceita() {
+        when(financas.registrarTransacao(any(), any(), any(), any())).thenReturn("ok");
+
+        interpretador.interpretar("faturei 800 de comissao");
+
+        verify(financas).registrarTransacao(any(), eq(new BigDecimal("800")),
+                eq("extra"), eq(TipoTransacao.RECEITA));
+    }
+
+    // "presente" e receita. Se as listas de categoria fossem uma so, cairia em
+    // lazer e o lancamento entraria errado.
+    @Test
+    void presenteEhReceitaENaoLazer() {
+        when(financas.registrarTransacao(any(), any(), any(), any())).thenReturn("ok");
+
+        interpretador.interpretar("ganhei 200 de presente");
+
+        verify(financas).registrarTransacao(any(), eq(new BigDecimal("200")),
+                eq("presente"), eq(TipoTransacao.RECEITA));
+    }
+
+    @Test
+    void cobreCategoriasNovasDeDespesa() {
+        when(financas.registrarTransacao(any(), any(), any(), any())).thenReturn("ok");
+
+        interpretador.interpretar("paguei 90 na farmacia");
+        verify(financas).registrarTransacao(any(), any(), eq("saude"), any());
+
+        interpretador.interpretar("gastei 55 de gasolina");
+        verify(financas).registrarTransacao(any(), any(), eq("transporte"), any());
+
+        interpretador.interpretar("paguei 120 de internet");
+        verify(financas).registrarTransacao(any(), any(), eq("moradia"), any());
+    }
+
+    @Test
+    void entendeGastosComCategoriaSemAPalavraQuanto() {
+        when(financas.consultarGastoPorCategoria("saude")).thenReturn("total");
+
+        assertThat(interpretador.interpretar("gastos com farmacia")).contains("total");
+    }
+
+    // Bug real: "gas" (moradia) casava dentro de "gastos", e "gastos com
+    // farmacia" virava moradia. Palavras curtas colidem com palavras maiores o
+    // tempo todo — este teste prende o casamento por palavra inteira.
+    @Test
+    void palavraCurtaNaoCasaDentroDeOutraPalavra() {
+        when(financas.consultarGastoPorCategoria("saude")).thenReturn("total");
+
+        assertThat(interpretador.interpretar("gastos com farmacia")).contains("total");
+    }
+
+    @Test
+    void naoConfundeCategoriaComPedacoDePalavra() {
+        when(financas.registrarTransacao(any(), any(), any(), any())).thenReturn("ok");
+
+        // "moto" nao pode transformar "motorista" em transporte por acidente do
+        // texto; aqui a categoria correta vem de outra palavra da frase.
+        interpretador.interpretar("paguei 30 de lanche");
+
+        verify(financas).registrarTransacao(any(), any(), eq("alimentacao"), any());
+    }
 }

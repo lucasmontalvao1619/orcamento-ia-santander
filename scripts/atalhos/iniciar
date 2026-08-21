@@ -13,7 +13,20 @@
 RAIZ="$(cd "$(dirname "$0")/../../.." && pwd)"
 SCRIPT="$RAIZ/scripts/iniciar.sh"
 LOG="$RAIZ/logs/inicializacao.log"
-URL="http://localhost:8080"
+# A aplicacao sobe na primeira porta livre a partir da 8080; esperar so na 8080
+# faria o atalho concluir que ela nunca subiu.
+PORTA_INICIAL=8080
+PORTAS_TENTADAS=20
+
+descobrir_porta() {
+    local p
+    for p in $(seq "$PORTA_INICIAL" $((PORTA_INICIAL + PORTAS_TENTADAS - 1))); do
+        if curl -s -o /dev/null -m 1 "http://localhost:$p/api/sobre" 2>/dev/null; then
+            echo "$p"; return 0
+        fi
+    done
+    return 1
+}
 
 avisar() {
     osascript -e "display notification \"$1\" with title \"Fast Finance Helper\"" > /dev/null 2>&1
@@ -39,8 +52,8 @@ case "$RAIZ" in
 esac
 
 # Ja esta no ar: so traz o navegador para frente, sem subir uma segunda copia.
-if curl -s -o /dev/null -m 2 "$URL/api/sobre" 2>/dev/null; then
-    open "$URL"
+if PORTA=$(descobrir_porta); then
+    open "http://localhost:$PORTA"
     exit 0
 fi
 
@@ -55,7 +68,7 @@ nohup "$SCRIPT" > "$LOG" 2>&1 &
 # ausente, build quebrado) seria silenciosa: o usuario clicaria e nada
 # aconteceria, sem nenhuma pista do motivo.
 i=0
-until curl -s -o /dev/null -m 2 "$URL/api/sobre" 2>/dev/null; do
+until PORTA=$(descobrir_porta); do
     i=$((i + 1))
     if [ "$i" -gt 150 ]; then
         alerta "A aplicação não subiu em 5 minutos. O que aconteceu está em logs/inicializacao.log, dentro da pasta do projeto."
@@ -65,4 +78,4 @@ done
 
 # Quem abre o navegador e o proprio scripts/iniciar.sh, que ja faz isso ao
 # terminar; aqui so confirmamos que deu certo.
-avisar "Pronto. Aplicação rodando em localhost:8080."
+avisar "Pronto. Aplicação rodando em localhost:$PORTA."

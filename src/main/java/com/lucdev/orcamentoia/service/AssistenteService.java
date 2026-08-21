@@ -56,25 +56,16 @@ public class AssistenteService {
     // Mostrada quando o interpretador nao reconhece a frase. Lista exemplos
     // reais em vez de um "nao entendi" seco: sem IA, o usuario precisa saber
     // qual formato funciona.
-    private static final String AJUDA_SEM_IA = """
-            Nao entendi. Sem uma chave da OpenAI configurada eu entendo comandos diretos, como:
-            - gastei 60 no uber
-            - recebi 500 de freela
-            - meu salario e 3000, dia 15
-            - qual e o meu saldo
-            - quanto gastei com alimentacao
-            - guarda 200 no porquinho
-            - listar transacoes
-            - corrige a transacao 3 para 45
-            - apaga a transacao 3
-            Para frases livres, informe sua chave da OpenAI em Configuracoes.""";
+    private static final String NAO_ENTENDI =
+            "Nao entendi esse comando.\n\n" + InterpretadorDeComandos.AJUDA
+            + "\n\nPara frases livres, informe sua chave da OpenAI em Configuracoes.";
 
     // Anexado a resposta quando a IA falhou e o interpretador salvou o comando:
     // sem isto, o usuario acharia que a chave esta funcionando.
     //
-    // O motivo vem do erro real, e nao de um palpite: conta sem credito e chave
-    // invalida pedem acoes opostas, e chutar "sem credito" mandaria quem digitou
-    // a chave errada procurar no lugar errado.
+    // O motivo vem do erro real: conta sem credito e chave invalida pedem acoes
+    // opostas, e chutar "sem credito" mandaria quem digitou a chave errada
+    // procurar no lugar errado.
     private static String avisoDeFallback(String causa) {
         String motivo;
         if (causa != null && causa.contains("insufficient_quota")) {
@@ -94,7 +85,7 @@ public class AssistenteService {
         // comandos comuns de graca, offline e na hora. Com chave, a IA assume e
         // lida tambem com frases fora do padrao.
         if (!configuracaoService.obter().temChaveOpenAi()) {
-            return interpretador.interpretar(textoUsuario).orElse(AJUDA_SEM_IA);
+            return interpretador.interpretar(textoUsuario).orElse(NAO_ENTENDI);
         }
 
         try {

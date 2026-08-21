@@ -14,7 +14,24 @@
 set -e
 cd "$(dirname "$0")/.."
 
-PORTA=8080
+# A aplicacao procura a primeira porta livre a partir da 8080: se a 8080 estiver
+# ocupada por outro programa, ela sobe na 8081 e assim por diante. Estes scripts
+# precisam procurar no mesmo intervalo, senao ficariam esperando num endereco
+# onde nada vai responder.
+PORTA_INICIAL=8080
+PORTAS_TENTADAS=20
+
+descobrir_porta() {
+    local p
+    for p in $(seq "$PORTA_INICIAL" $((PORTA_INICIAL + PORTAS_TENTADAS - 1))); do
+        if curl -s -o /dev/null -m 1 "http://localhost:$p/api/sobre" 2>/dev/null; then
+            echo "$p"; return 0
+        fi
+    done
+    return 1
+}
+
+PORTA=$PORTA_INICIAL
 URL="http://localhost:$PORTA"
 
 # O celular nao enxerga "localhost": precisa do endereco da maquina na rede.
@@ -38,12 +55,17 @@ anunciar_pronto() {
 }
 
 esperar_e_abrir() {
-    until curl -s -o /dev/null "$URL/api/sobre" 2>/dev/null; do sleep 3; done
+    local encontrada=""
+    until encontrada=$(descobrir_porta); do sleep 3; done
+    PORTA="$encontrada"
+    URL="http://localhost:$PORTA"
     anunciar_pronto
     if command -v open > /dev/null 2>&1; then open "$URL"; fi
 }
 
-if curl -s -o /dev/null -m 2 "$URL/api/sobre" 2>/dev/null; then
+if PORTA_ATIVA=$(descobrir_porta); then
+    PORTA="$PORTA_ATIVA"
+    URL="http://localhost:$PORTA"
     echo "O Fast Finance Helper ja esta rodando."
     anunciar_pronto
     if command -v open > /dev/null 2>&1; then open "$URL"; fi

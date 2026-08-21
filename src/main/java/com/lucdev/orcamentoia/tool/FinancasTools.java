@@ -46,6 +46,16 @@ public class FinancasTools {
         return String.format(BR, "Salario definido em R$ %.2f%s.", configuracao.getSalario(), quando);
     }
 
+    @Tool(description = "Declara que o usuario NAO tem salario fixo. Use quando ele disser que e "
+            + "autonomo, freelancer, que vive de renda variavel, que esta desempregado ou que nao "
+            + "tem salario. O orcamento continua zerado e cada entrada e registrada conforme ele "
+            + "recebe. Apaga a receita de salario anterior, se existir.")
+    public String declararQueNaoTenhoSalario() {
+        configuracaoService.declararQueNaoTemSalario();
+        return "Certo, sem salario fixo. Registre cada entrada de dinheiro conforme receber, "
+                + "com comandos como 'recebi 500 de freela'.";
+    }
+
     @Tool(description = "Consulta o salario mensal configurado pelo usuario.")
     public String consultarSalario() {
         Configuracao configuracao = configuracaoService.obter();

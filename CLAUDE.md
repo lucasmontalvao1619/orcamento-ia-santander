@@ -27,6 +27,13 @@ da bolsa, mudanca do percentual do CDI, metas de gasto, categorias novas:
 Esquecer o passo 2 nao quebra nenhum teste existente: o recurso simplesmente
 nao funciona para quem nao tem chave, em silencio. Por isso a regra esta aqui.
 
+### Casar PALAVRA INTEIRA, nunca pedaco
+
+As categorias e as saudacoes usam limite de palavra (`\b`). Comparar por
+substring parece funcionar e falha em silencio: "gas" (moradia) casava dentro de
+"gastos", e "gastos com farmacia" era classificado como moradia. Palavras curtas
+colidem com maiores o tempo todo — "bar" em "barato", "moto" em "motorista".
+
 ### Ordem das regras importa
 
 Em `interpretar()`, as verificacoes vao do mais especifico para o mais generico.
