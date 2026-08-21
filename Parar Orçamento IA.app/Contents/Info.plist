@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Iniciar Orçamento IA</string>
+    <string>Parar Orçamento IA</string>
     <key>CFBundleDisplayName</key>
-    <string>Iniciar Orçamento IA</string>
+    <string>Parar Orçamento IA</string>
     <key>CFBundleIdentifier</key>
-    <string>com.lucdev.orcamentoia.iniciar</string>
+    <string>com.lucdev.orcamentoia.parar</string>
     <key>CFBundleExecutable</key>
-    <string>iniciar</string>
+    <string>parar</string>
     <key>CFBundleIconFile</key>
     <string>icone</string>
     <key>CFBundlePackageType</key>

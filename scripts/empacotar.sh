@@ -16,6 +16,7 @@ zip -r "$PACOTE" . \
     -x "target/*" \
     -x "dados/*" \
     -x "dist/*" \
+    -x "logs/*" \
     -x ".git/*" \
     -x ".idea/*" \
     -x ".claude/*" \

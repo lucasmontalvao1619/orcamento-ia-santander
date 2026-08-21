@@ -19,11 +19,16 @@ Requer apenas o **Docker** instalado e aberto. Nao precisa de Java, Maven nem Ol
 
 Na raiz do projeto ha um item para clicar, um por sistema:
 
-| Sistema | Clique em |
-|---------|-----------|
-| macOS | **Iniciar Orcamento IA** (o icone do porquinho) |
-| Windows | **Iniciar Orcamento IA.bat** |
-| Terminal | `scripts/iniciar.sh` |
+| Sistema | Iniciar | Parar |
+|---------|---------|-------|
+| macOS | **Iniciar Orcamento IA** | **Parar Orcamento IA** |
+| Windows | **Iniciar Orcamento IA.bat** | `scripts/parar.sh` |
+| Terminal | `scripts/iniciar.sh` | `scripts/parar.sh` |
+
+No macOS o clique **nao abre Terminal nenhum**: a aplicacao sobe em segundo
+plano, o macOS avisa por notificacao e o navegador abre sozinho quando fica
+pronta. Como nao ha janela para fechar, parar tambem e um clique — dai o
+segundo atalho. Se algo falhar, o alerta aponta `logs/inicializacao.log`.
 
 No macOS, na **primeira vez**, o sistema recusa aplicativos sem assinatura: clique
 com o **botao direito > Abrir** e confirme. Depois disso o duplo clique funciona
@@ -41,16 +46,12 @@ O atalho escolhe sozinho como subir:
 instaladas e so queria abrir o aplicativo; por isso a escolha e automatica. Se
 nenhum dos dois caminhos estiver disponivel, a mensagem diz o que instalar.
 
-O atalho abre o Terminal de proposito, em vez de rodar em silencio: a primeira
-execucao baixa o modelo de IA (~4,7 GB) e leva alguns minutos, e sem uma janela
-com o progresso a impressao seria a de que nada aconteceu. Nas vezes seguintes o
-modelo ja esta no volume e a subida e rapida.
+A primeira execucao baixa o modelo de IA (~4,7 GB) e leva alguns minutos; nas
+seguintes a subida e rapida. O navegador abre em **http://localhost:8080**
+sozinho quando a aplicacao responde.
 
-Quando fica pronto, o navegador abre em **http://localhost:8080** sozinho. Para
-encerrar, `scripts/parar.sh`.
-
-Cada instalacao comeca com o **orcamento zerado**: o volume de dados nasce vazio,
-e a aplicacao pergunta o salario no primeiro acesso.
+Cada instalacao comeca com o **orcamento zerado**: nao acompanha dado nenhum, e
+a aplicacao pergunta o salario no primeiro acesso — cada pessoa configura o seu.
 
 ### Opcao 2 — Local, sem Docker
 

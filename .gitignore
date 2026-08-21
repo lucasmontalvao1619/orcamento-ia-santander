@@ -36,3 +36,4 @@ dados/
 
 # Pacote gerado por ./empacotar.sh
 dist/
+logs/
