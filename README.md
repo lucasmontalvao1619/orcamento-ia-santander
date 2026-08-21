@@ -24,7 +24,7 @@ maquina. E o formato para mandar a aplicacao para outra pessoa.
 scripts/gerar-executavel.sh
 ```
 
-Sai um `dist/executavel/Orcamento IA.app` (~213 MB). Copie para onde preferir —
+Sai um `dist/executavel/Orcamento IA.app` (~149 MB). Copie para onde preferir —
 Desktop, Aplicativos — e de dois cliques. Como funciona no uso:
 
 - **Nao abre Terminal.** A aplicacao sobe em segundo plano, o macOS avisa por
@@ -47,7 +47,7 @@ O **`.exe` do Windows** sai do mesmo empacotador pelo GitHub Actions, porque o
 Windows a partir de um Mac. Veja *Executaveis pelo GitHub Actions*, mais abaixo.
 
 Uma ressalva honesta: o executavel embute o **Java**, nao a **IA**. O modelo tem
-4,7 GB e continua vindo do Ollama ou do Docker. Sem ele a interface abre e os
+1,9 GB e continua vindo do Ollama ou do Docker. Sem ele a interface abre e os
 lancamentos manuais funcionam; o assistente por voz responde erro.
 
 ### Opcao 2 — Docker, sem instalar dependencia nenhuma
@@ -75,7 +75,7 @@ tenha Java e Ollama — inclusive iniciando o Ollama e baixando o modelo se
 faltar. "O Docker nao esta rodando" e uma resposta inutil para quem tem todas as
 pecas instaladas e so queria abrir o aplicativo.
 
-A primeira execucao baixa o modelo (~4,7 GB) e leva alguns minutos; nas
+A primeira execucao baixa o modelo (~1,9 GB) e leva alguns minutos; nas
 seguintes a subida e rapida. Para encerrar, `scripts/parar.sh`, que serve aos
 dois modos.
 
@@ -99,7 +99,7 @@ codigo.
 ```bash
 brew install ollama        # macOS. Outras plataformas: https://ollama.com/download
 ollama serve               # deixa o servidor rodando
-ollama pull qwen2.5        # baixa o modelo (~4,7 GB, so na primeira vez)
+ollama pull qwen2.5:3b     # baixa o modelo (~1,9 GB, so na primeira vez)
 
 ./mvnw spring-boot:run
 ```
@@ -129,7 +129,7 @@ com icone proprio e sem a barra do navegador.
 
 O que isso e e o que nao e: o celular vira o **cliente**; quem processa continua
 sendo o computador. O aparelho precisa estar na mesma rede e o computador
-ligado, porque nenhum celular roda um modelo de linguagem de 4,7 GB. Para usar
+ligado, porque nenhum celular roda um modelo de linguagem de 1,9 GB. Para usar
 de qualquer lugar, a aplicacao precisaria estar hospedada num servidor.
 
 O ditado por voz depende da Web Speech API: funciona no Chrome do Android e nao
@@ -234,6 +234,15 @@ do controller.
 interface consulta `/api/assistente/status` para avisar antes de o usuario tentar
 um comando que so resultaria em erro.
 
+**O modelo padrao e o qwen2.5:3b, e a escolha foi medida.** O 7B (4,7 GB) leva
+~18s por comando; o 1.5B (986 MB) responde em 1 a 4s mas **nao chama as
+ferramentas** — pede descricao em vez de registrar, diz que precisa saber as
+receitas em vez de consultar o saldo. Rapido e inutil. O 3B (1,9 GB) acertou
+todas as chamadas testadas — registrar, corrigir, apagar, consultar saldo, gasto
+por categoria, porquinho e salario — em **2 a 3 segundos**. Menos da metade do
+download e cerca de seis vezes mais rapido, sem perder o Tool Calling. Para
+trocar: `OLLAMA_MODEL=qwen2.5 ./mvnw spring-boot:run`.
+
 **A memoria de conversa fica desligada por padrao.** Ela faz "na verdade foram 60"
 funcionar, mas modelos locais menores, ao verem no historico respostas antigas no
 formato "registrado com sucesso", passam a **imitar esse texto em vez de chamar a
@@ -312,7 +321,7 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-107 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+108 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
 de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
 endpoints — inclusive os status 400, 404,

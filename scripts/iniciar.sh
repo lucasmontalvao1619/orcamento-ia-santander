@@ -55,7 +55,7 @@ fi
 # --- Caminho 1: Docker ------------------------------------------------------
 if docker info > /dev/null 2>&1; then
     echo "Iniciando o Orcamento IA (Docker)..."
-    echo "Na primeira vez o modelo de IA e baixado (~4,7 GB); pode levar alguns minutos."
+    echo "Na primeira vez o modelo de IA e baixado (~1,9 GB); pode levar alguns minutos."
     echo ""
     docker compose -f docker/docker-compose.yml up --build -d
 
@@ -79,9 +79,9 @@ if command -v java > /dev/null 2>&1 && command -v ollama > /dev/null 2>&1; then
         until curl -s -o /dev/null -m 2 http://localhost:11434/api/tags 2>/dev/null; do sleep 2; done
     fi
 
-    MODELO="${OLLAMA_MODEL:-qwen2.5}"
+    MODELO="${OLLAMA_MODEL:-qwen2.5:3b}"
     if ! ollama list 2>/dev/null | grep -q "^$MODELO"; then
-        echo "Baixando o modelo $MODELO (~4,7 GB, apenas na primeira vez)..."
+        echo "Baixando o modelo $MODELO (~1,9 GB, apenas na primeira vez)..."
         ollama pull "$MODELO"
     fi
 

@@ -14,7 +14,7 @@ services:
     image: ollama/ollama:latest
     container_name: orcamento-ollama
     volumes:
-      # O modelo baixado fica no volume: o download de ~4,7 GB acontece uma vez
+      # O modelo baixado fica no volume: o download de ~1,9 GB acontece uma vez
       # so, e nao se repete a cada 'docker compose up'.
       - modelos-ollama:/root/.ollama
     healthcheck:
@@ -37,8 +37,8 @@ services:
       OLLAMA_HOST: http://ollama:11434
     entrypoint: ["/bin/sh", "-c"]
     command: >
-      "echo 'Baixando o modelo de IA (~4,7 GB, apenas na primeira vez)...';
-       ollama pull qwen2.5 && echo 'Modelo pronto.'"
+      "echo 'Baixando o modelo de IA (~1,9 GB, apenas na primeira vez)...';
+       ollama pull qwen2.5:3b && echo 'Modelo pronto.'"
     restart: "no"
 
   # A API e a interface web.
@@ -56,7 +56,7 @@ services:
       - "8080:8080"
     environment:
       OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: qwen2.5
+      OLLAMA_MODEL: qwen2.5:3b
     volumes:
       # Os lancamentos ficam neste volume e sobrevivem ao restart. Como o volume
       # nasce vazio, cada pessoa comeca com o orcamento zerado.

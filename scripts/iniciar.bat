@@ -12,7 +12,7 @@ if errorlevel 1 (
 )
 
 echo Iniciando o Orcamento IA...
-echo Na primeira vez o modelo de IA e baixado ^(~4,7 GB^); pode levar alguns minutos.
+echo Na primeira vez o modelo de IA e baixado ^(~1,9 GB^); pode levar alguns minutos.
 echo.
 docker compose -f docker/docker-compose.yml up --build -d
 
