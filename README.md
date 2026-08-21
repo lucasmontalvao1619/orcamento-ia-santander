@@ -46,17 +46,16 @@ O **`.exe` do Windows** sai do mesmo empacotador pelo GitHub Actions, porque o
 `jpackage` so gera para o sistema em que roda — nao ha como produzir um binario
 Windows a partir de um Mac. Veja *Executaveis pelo GitHub Actions*, mais abaixo.
 
-Uma ressalva honesta: o executavel embute o **Java**, nao a **IA**. O modelo tem
-1,9 GB e continua vindo do Ollama ou do Docker. Sem ele a interface abre e os
-lancamentos manuais funcionam; o assistente por voz responde erro.
+O executavel embute o **Java** e o **interpretador de comandos**, entao o
+assistente escrito funciona de imediato, sem nada instalado e sem custo. O que
+ele nao embute e a **IA**: para frases livres e para o ditado por voz, informe
+uma chave da OpenAI em Configuracoes.
 
 ### Opcao 2 — Docker, sem instalar dependencia nenhuma
 
-Este e o caminho pensado para **nao exigir nada** alem do proprio Docker: nem
-Java, nem Maven, nem Ollama, nem o download manual do modelo. O
-`docker-compose.yml` sobe tres servicos — o modelo de linguagem, o download dele
-e a aplicacao — e a aplicacao so inicia depois que o modelo termina de baixar,
-para nunca subir com o assistente quebrado.
+Para quem nao tem Java na maquina. O `docker-compose.yml` sobe apenas a
+aplicacao — desde que a IA passou a ser da OpenAI, nao ha mais servico de modelo
+local nem download de gigabytes.
 
 ```bash
 scripts/iniciar.sh     # macOS e Linux
@@ -69,43 +68,31 @@ Na raiz tambem ha atalhos clicaveis que chamam esse script:
 | macOS | **Iniciar Fast Finance Helper** | **Parar Fast Finance Helper** |
 | Windows | **Iniciar Fast Finance Helper.bat** | `scripts/parar.sh` |
 
-O script escolhe sozinho como subir: usa o **Docker** quando ele esta
-disponivel, e cai para o **modo local** quando nao esta, desde que a maquina
-tenha Java e Ollama — inclusive iniciando o Ollama e baixando o modelo se
-faltar. "O Docker nao esta rodando" e uma resposta inutil para quem tem todas as
-pecas instaladas e so queria abrir o aplicativo.
+O script escolhe sozinho: usa o **modo local** quando a maquina tem Java, e cai
+para o **Docker** quando nao tem. O local vem primeiro porque sobe em segundos e
+nao depende de o Docker estar aberto.
 
-A primeira execucao baixa o modelo (~1,9 GB) e leva alguns minutos; nas
-seguintes a subida e rapida. Para encerrar, `scripts/parar.sh`, que serve aos
-dois modos.
+Para encerrar, `scripts/parar.sh`, que serve aos dois modos.
 
-> **Testado de ponta a ponta** em 21/08/2026, macOS com Docker Desktop 29.7.2:
-> os tres servicos subiram na ordem prevista (Ollama saudavel, download do
-> modelo concluido, aplicacao no ar), o orcamento nasceu zerado e o assistente
-> registrou "gastei 45 no mercado" inferindo a categoria, com o modelo rodando
-> dentro do container.
->
-A propria interface avisa quando esta rodando por container, em
-**Configuracoes**: sem isso, dois minutos de espera passam por travamento e a
-pessoa fecha o aplicativo achando que quebrou.
-
-> **Uma ressalva de desempenho no macOS:** o mesmo comando levou **1min50s** no
-> container contra **~18s** rodando local. O Ollama dentro de um container Linux
-> nao alcanca a GPU do Mac e responde so em CPU. Para uso no dia a dia num Mac,
-> prefira a Opcao 1; o Docker compensa quando a maquina nao tem Java nem Ollama,
-> ou em Linux com GPU acessivel ao container.
+> **Testado de ponta a ponta.** O `.deb` do Linux foi instalado e executado num
+> Ubuntu 24.04 real (container), respondendo comandos do assistente. O `.exe` do
+> Windows e verificado pelo GitHub Actions, que **executa o binario** numa
+> maquina Windows antes de publicar.
 
 ### Opcao 3 — Local, sem Docker e sem empacotar
 
-Requer **Java 17+**, **Maven** e **Ollama**. E o caminho de quem vai mexer no
-codigo.
+Requer **Java 17+** e **Maven**. E o caminho de quem vai mexer no codigo.
 
 ```bash
-brew install ollama        # macOS. Outras plataformas: https://ollama.com/download
-ollama serve               # deixa o servidor rodando
-ollama pull qwen2.5:3b     # baixa o modelo (~1,9 GB, so na primeira vez)
-
 ./mvnw spring-boot:run
+```
+
+Nao precisa de Ollama nem de chave: o interpretador proprio atende os comandos.
+Quem quiser o modelo local mesmo assim:
+
+```bash
+brew install ollama && ollama serve && ollama pull qwen2.5:3b
+AI_PROVIDER=ollama ./mvnw spring-boot:run
 ```
 
 ### Executaveis pelo GitHub Actions
@@ -181,13 +168,13 @@ O modelo nao escreve no banco. Ele escolhe **qual funcao Java chamar e com quais
 argumentos** — isso e o **Tool Calling**. Quem executa e a aplicacao, passando
 pelas mesmas regras de negocio da API REST.
 
-Sao 15 ferramentas expostas ao modelo:
+Sao 16 ferramentas expostas ao modelo, e o interpretador proprio cobre todas:
 
 | Area | Ferramentas |
 |------|-------------|
 | Transacoes | registrar, atualizar, apagar, listar |
 | Consultas | saldo, gasto por categoria |
-| Salario | definir, consultar |
+| Salario | definir, consultar, declarar que nao ha salario fixo |
 | Porquinho | guardar, retirar, consultar, listar movimentos, apagar movimento |
 | App | recursos disponiveis, autor do projeto |
 
@@ -339,6 +326,9 @@ por `/api/sobre`, alem de alimentar a ferramenta que responde quem fez o projeto
 | POST | `/api/assistente/texto` | Processa um comando de texto |
 | POST | `/api/assistente/audio` | Processa um comando de voz (requer OpenAI) |
 | GET | `/api/configuracao` | Estado da configuracao inicial e salario |
+| PUT | `/api/configuracao/chave-openai` | Guarda a chave da OpenAI (voz e IA) |
+| DELETE | `/api/configuracao/chave-openai` | Remove a chave |
+| GET | `/api/sessao` | Se o app esta em modo aplicativo |
 | PUT | `/api/configuracao/salario` | Define ou altera o salario e o dia |
 | PUT | `/api/configuracao/sem-salario` | Declara que nao ha salario fixo |
 | GET | `/api/categorias` | Categorias de despesa e de receita |
@@ -373,7 +363,7 @@ Todas as falhas saem em [ProblemDetail (RFC 7807)](https://datatracker.ietf.org/
 
 ## Tecnologias
 
-Java 17 · Spring Boot 3.5 · Spring AI 1.1 · Ollama (OpenAI como alternativa) ·
+Java 17 · Spring Boot 3.5 · Spring AI 1.1 · OpenAI (Ollama como alternativa) ·
 Spring Data JPA · H2 · Bean Validation · SpringDoc · Docker ·
 HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 
@@ -383,7 +373,7 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-133 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+158 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
 de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
 endpoints — inclusive os status 400, 404,
