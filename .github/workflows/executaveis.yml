@@ -28,7 +28,7 @@ jobs:
             icone: scripts/icone.ico
           - sistema: macos-latest
             nome: macos
-            icone: Iniciar Orçamento IA.app/Contents/Resources/icone.icns
+            icone: scripts/icone.icns
 
     runs-on: ${{ matrix.sistema }}
 

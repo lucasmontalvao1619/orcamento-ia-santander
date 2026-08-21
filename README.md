@@ -359,13 +359,19 @@ suite mexeria nos lancamentos reais de quem estivesse usando o aplicativo.
 
 ## Estrutura
 
+Binario nao entra no Git: os atalhos do macOS e os executaveis sao **gerados**
+por script. O repositorio guarda a receita, nao o produto — por isso ele tem
+cerca de 1 MB, e nao os 370 MB dos aplicativos prontos.
+
 ```
-├── Iniciar Fast Finance Helper.app      # Atalho do macOS: duplo clique e pronto
-├── Parar Fast Finance Helper.app        # Encerra sem precisar de Terminal
-├── Iniciar Fast Finance Helper.bat      # O mesmo atalho no Windows
+├── Iniciar Fast Finance Helper.bat      # Atalho do Windows
+│                                        # (os .app do macOS sao gerados por
+│                                        #  scripts/gerar-atalhos.sh, nao versionados)
 ├── .github/workflows/            # Gera os executaveis de Windows e macOS
 ├── docker/                       # Dockerfile e docker-compose.yml
 ├── scripts/                      # iniciar, parar, empacotar e gerar executavel
+│   ├── atalhos/                  # corpo dos atalhos do macOS
+│   └── icone.icns / icone.ico    # fonte unica dos icones de empacotamento
 ├── src/
 │   ├── main/
 │   │   ├── java/com/lucdev/orcamentoia/

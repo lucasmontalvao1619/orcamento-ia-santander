@@ -52,24 +52,13 @@ if curl -s -o /dev/null -m 2 "$URL/api/sobre" 2>/dev/null; then
     exit 0
 fi
 
-# --- Caminho 1: Docker ------------------------------------------------------
-if docker info > /dev/null 2>&1; then
-    echo "Iniciando o Fast Finance Helper (Docker)..."
-    echo "Na primeira vez o modelo de IA e baixado (~1,9 GB); pode levar alguns minutos."
-    echo ""
-    docker compose -f docker/docker-compose.yml up --build -d
-
-    echo ""
-    echo "Aguardando a aplicacao ficar pronta..."
-    esperar_e_abrir
-    echo "Para parar: scripts/parar.sh"
-    exit 0
-fi
-
-# --- Caminho 2: local, sem container ----------------------------------------
+# --- Caminho 1: local, sem container ----------------------------------------
+# O local vem primeiro de proposito. Dentro de um container o modelo roda so em
+# CPU: no macOS, a mesma pergunta leva cerca de 2 minutos contra poucos segundos
+# rodando direto na maquina (medido). Tendo Java e Ollama instalados, usar o
+# container seria escolher a versao lenta sem motivo.
 if command -v java > /dev/null 2>&1 && command -v ollama > /dev/null 2>&1; then
-    echo "O Docker nao esta disponivel, mas esta maquina tem Java e Ollama."
-    echo "Subindo em modo local, sem container."
+    echo "Subindo em modo local (mais rapido: usa a placa de video da maquina)."
     echo ""
 
     # O Ollama e um processo a parte: sem ele no ar, o assistente responde 503.
@@ -90,6 +79,23 @@ if command -v java > /dev/null 2>&1 && command -v ollama > /dev/null 2>&1; then
     ( esperar_e_abrir ; echo "Para parar: Ctrl+C nesta janela." ) &
 
     exec ./mvnw spring-boot:run
+fi
+
+
+# --- Caminho 2: Docker ------------------------------------------------------
+# Para quem nao tem Java nem Ollama: funciona sem instalar nada, ao custo de
+# respostas bem mais lentas.
+if docker info > /dev/null 2>&1; then
+    echo "Iniciando o Fast Finance Helper (Docker)..."
+    echo "Na primeira vez o modelo de IA e baixado (~1,9 GB); pode levar alguns minutos."
+    echo ""
+    docker compose -f docker/docker-compose.yml up --build -d
+
+    echo ""
+    echo "Aguardando a aplicacao ficar pronta..."
+    esperar_e_abrir
+    echo "Para parar: scripts/parar.sh"
+    exit 0
 fi
 
 # --- Nenhum dos dois --------------------------------------------------------

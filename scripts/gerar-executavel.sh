@@ -54,7 +54,7 @@ jpackage \
     --app-version "$VERSAO" \
     --input "$PALCO" \
     --main-jar "$JAR_NOME" \
-    --icon "Iniciar Fast Finance Helper.app/Contents/Resources/icone.icns" \
+    --icon "scripts/icone.icns" \
     --java-options "-Dapp.empacotado=true" \
     --java-options "-Dapp.abrir-navegador=true" \
     --java-options "-Dapp.encerrar-ao-fechar=true" \

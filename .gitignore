@@ -37,3 +37,8 @@ dados/
 # Pacote gerado por ./empacotar.sh
 dist/
 logs/
+
+# Atalhos do macOS: gerados por scripts/gerar-atalhos.sh a partir do icone e
+# dos scripts em scripts/atalhos. O repositorio guarda a receita, nao o produto.
+Iniciar Fast Finance Helper.app/
+Parar Fast Finance Helper.app/

@@ -9,6 +9,9 @@ NOME="orcamento-ia"
 SAIDA="dist"
 PACOTE="$SAIDA/$NOME.zip"
 
+# Os atalhos nao sao versionados; sao gerados antes de entrar no pacote.
+scripts/gerar-atalhos.sh
+
 rm -rf "$SAIDA"
 mkdir -p "$SAIDA"
 
