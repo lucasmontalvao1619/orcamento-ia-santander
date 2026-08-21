@@ -12,7 +12,9 @@ set -e
 cd "$(dirname "$0")/.."
 
 NOME="Orcamento IA"
-VERSAO=$(grep -m1 '<version>' pom.xml | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+# A primeira <version> do pom e a do parent (Spring Boot). A do projeto vem
+# depois do </parent> — sem isso o app sai carimbado com a versao do framework.
+VERSAO=$(sed -n '/<\/parent>/,$p' pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
 SAIDA="dist/executavel"
 PALCO="target/palco-jpackage"
 

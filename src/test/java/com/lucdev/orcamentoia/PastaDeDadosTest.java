@@ -2,6 +2,7 @@ package com.lucdev.orcamentoia;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,14 +17,17 @@ class PastaDeDadosTest {
         assertThat(OrcamentoIaApplication.pastaDeDados(new Properties())).isEqualTo("./dados");
     }
 
+    // A comparacao e de caminho, nao de texto: o Windows monta com barra
+    // invertida, e uma string fixa aqui passaria no Mac e quebraria o build do
+    // executavel para Windows — foi o que aconteceu.
     @Test
     void empacotadoGravaNaPastaPessoalDoUsuario() {
         Properties p = new Properties();
         p.setProperty(OrcamentoIaApplication.MARCA_DE_EMPACOTADO, "true");
         p.setProperty("user.home", "/Users/fulano");
 
-        assertThat(OrcamentoIaApplication.pastaDeDados(p))
-                .isEqualTo("/Users/fulano/.orcamento-ia");
+        assertThat(Paths.get(OrcamentoIaApplication.pastaDeDados(p)))
+                .isEqualTo(Paths.get("/Users/fulano", ".orcamento-ia"));
     }
 
     // Quem define a pasta na mao manda em qualquer heuristica: e assim que o
