@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Atalho clicavel do Orcamento IA.
+#
+# Um duplo clique no Finder nao abre janela nenhuma, e a primeira execucao
+# demora minutos baixando o modelo de IA. Por isso este atalho nao roda a
+# aplicacao em silencio: ele abre o Terminal com o script de sempre, para o
+# usuario ver o progresso e entender qualquer erro que apareca.
+#
+# O .app fica na raiz do projeto, entao a raiz e tres pastas acima daqui:
+#   <raiz>/Iniciar Orçamento IA.app/Contents/MacOS/iniciar
+
+RAIZ="$(cd "$(dirname "$0")/../../.." && pwd)"
+SCRIPT="$RAIZ/scripts/iniciar.sh"
+
+if [ ! -f "$SCRIPT" ]; then
+    osascript -e 'display alert "Orçamento IA" message "Não encontrei scripts/iniciar.sh. Este atalho precisa ficar dentro da pasta do projeto." as critical'
+    exit 1
+fi
+
+osascript <<APPLESCRIPT
+tell application "Terminal"
+    activate
+    do script "clear; " & quoted form of "$SCRIPT"
+end tell
+APPLESCRIPT
