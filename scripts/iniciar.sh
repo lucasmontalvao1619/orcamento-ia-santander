@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # Sobe o Orcamento IA. Requer apenas o Docker instalado e aberto.
+#
+# Este script vive em scripts/, mas trabalha a partir da raiz do projeto: e la
+# que estao o pom.xml e o src que o build dentro do container copia.
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
+
+COMPOSE="docker compose -f docker/docker-compose.yml"
 
 if ! docker info > /dev/null 2>&1; then
     echo "O Docker nao esta rodando."
@@ -12,7 +17,7 @@ fi
 echo "Iniciando o Orcamento IA..."
 echo "Na primeira vez o modelo de IA e baixado (~4,7 GB); pode levar alguns minutos."
 echo ""
-docker compose up --build -d
+$COMPOSE up --build -d
 
 echo ""
 echo "Aguardando a aplicacao ficar pronta..."
@@ -31,6 +36,6 @@ if [ -n "$IP" ]; then
     echo "                      'Adicionar a tela de inicio' para instalar)"
 fi
 echo ""
-echo "Para parar: ./parar.sh"
+echo "Para parar: scripts/parar.sh"
 
 if command -v open > /dev/null 2>&1; then open http://localhost:8080; fi

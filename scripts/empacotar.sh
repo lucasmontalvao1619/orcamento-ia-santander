@@ -3,7 +3,7 @@
 # O pacote sai limpo: sem build, sem dados e sem historico do git — assim quem
 # extrair comeca com o orcamento zerado.
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 NOME="orcamento-ia"
 SAIDA="dist"
@@ -29,6 +29,7 @@ zip -r "$PACOTE" . \
 echo "Pacote gerado: $PACOTE  ($(du -h "$PACOTE" | cut -f1))"
 echo ""
 echo "Quem receber precisa apenas do Docker instalado:"
-echo "  1. Extrair o zip"
-echo "  2. Rodar ./iniciar.sh  (ou iniciar.bat no Windows)"
-echo "  3. Abrir http://localhost:8080"
+echo "  macOS    extrair e dar dois cliques em 'Iniciar Orcamento IA'"
+echo "           (na primeira vez: clique com o botao direito > Abrir)"
+echo "  Windows  extrair e dar dois cliques em 'Iniciar Orcamento IA.bat'"
+echo "  Terminal scripts/iniciar.sh"

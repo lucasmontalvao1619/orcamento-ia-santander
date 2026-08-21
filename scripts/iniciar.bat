@@ -1,6 +1,7 @@
 @echo off
 REM Sobe o Orcamento IA no Windows. Requer apenas o Docker Desktop instalado.
-cd /d "%~dp0"
+REM Trabalha a partir da raiz do projeto, uma pasta acima desta.
+cd /d "%~dp0.."
 
 docker info >nul 2>&1
 if errorlevel 1 (
@@ -13,7 +14,7 @@ if errorlevel 1 (
 echo Iniciando o Orcamento IA...
 echo Na primeira vez o modelo de IA e baixado ^(~4,7 GB^); pode levar alguns minutos.
 echo.
-docker compose up --build -d
+docker compose -f docker/docker-compose.yml up --build -d
 
 echo.
 echo Aguardando a aplicacao ficar pronta...

@@ -1,6 +1,12 @@
 # Sobe a aplicacao inteira com um comando: o modelo de IA, o download dele e a
 # API. Quem for usar precisa apenas do Docker instalado — nada de Java, Maven
 # ou Ollama na maquina.
+# O nome do projeto e fixo de proposito. Sem esta linha o Compose usaria o nome
+# da pasta onde este arquivo esta, e os volumes passariam a se chamar
+# "docker_dados-orcamento" — mover ou renomear a pasta faria os lancamentos
+# desaparecerem, porque o volume antigo continuaria existindo com outro nome.
+name: orcamento-ia
+
 services:
 
   # O modelo de linguagem, rodando localmente.
@@ -37,7 +43,11 @@ services:
 
   # A API e a interface web.
   app:
-    build: .
+    # O contexto e a raiz do projeto (uma pasta acima): e la que estao o pom.xml
+    # e o src que o Dockerfile copia.
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: orcamento-app
     depends_on:
       baixar-modelo:
