@@ -350,10 +350,11 @@ async function salvarSalario(valor, dia = null) {
 
 async function enviarComando(comando) {
     if (!comando.trim() || estado.ocupado) return;
-    if (!estado.iaConfigurada) {
-        notificar('Configure a ANTHROPIC_API_KEY para usar o assistente.', 'erro');
-        return;
-    }
+
+    // Sem trava por falta de chave: quem decide como responder e o servidor.
+    // Com chave usa a OpenAI; sem chave, o interpretador proprio atende. Uma
+    // verificacao aqui impediria o comando de sair e esconderia o interpretador
+    // inteiro — foi exatamente o que aconteceu.
 
     adicionarMensagem('usuario', comando);
     definirOcupado(true);

@@ -9,7 +9,11 @@
  * pior do que mostrar um erro de conexao.
  */
 
-const VERSAO = 'orcamento-ia-v1';
+// Trocar esta versao a cada mudanca na interface: o cache antigo e apagado no
+// 'activate', e sem isso o navegador continua servindo o HTML e o JS antigos.
+// Ja aconteceu: uma mensagem de erro de uma versao anterior reapareceu na tela
+// depois de o codigo dela ter sido removido.
+const VERSAO = 'fast-finance-v2';
 const CASCO = [
     '/',
     '/css/estilo.css',
