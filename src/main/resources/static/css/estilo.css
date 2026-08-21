@@ -1020,3 +1020,77 @@ tr:hover .apagar, .apagar:focus-visible { opacity: 1; }
 /* Microfone sem chave: continua clicavel — o clique explica o que falta e abre
    as Configuracoes. Desabilitar deixaria o usuario sem saber por que. */
 .microfone.sem-chave { opacity: .55; }
+
+/* ------------------------------------------------ fixos e resumo ---- */
+
+.tabela-area { padding: 4px; }
+
+.tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tabela th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--texto-3);
+    border-bottom: 1px solid var(--borda);
+}
+.tabela td { padding: 12px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
+.tabela tr:last-child td { border-bottom: 0; }
+.tabela .acoes { text-align: right; white-space: nowrap; }
+
+.variavel { color: var(--texto-3); font-style: italic; }
+
+.mini {
+    padding: 5px 11px;
+    margin-left: 6px;
+    border: 1px solid var(--borda-forte);
+    border-radius: 8px;
+    background: none;
+    color: var(--texto-2);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+.mini:hover { color: var(--texto); border-color: var(--texto-3); }
+.mini--perigo:hover { color: var(--acento-claro); border-color: var(--acento); }
+
+/* A barra existe para a proporcao ser lida de relance: numero exige comparar,
+   barra nao. E o que responde "para onde meu dinheiro esta indo". */
+.barra {
+    display: inline-block;
+    width: 110px;
+    height: 6px;
+    margin-right: 8px;
+    border-radius: 999px;
+    background: var(--superficie-2);
+    overflow: hidden;
+    vertical-align: middle;
+}
+.barra-preenchida {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--acento), var(--acento-claro));
+}
+.percentual { font-size: 12px; color: var(--texto-2); }
+
+.resumo-totais {
+    display: flex;
+    gap: 26px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding: 16px 12px 4px;
+    border-top: 1px solid var(--borda);
+}
+.resumo-totais div { display: flex; flex-direction: column; gap: 4px; }
+.resumo-totais span {
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--texto-3);
+}
+.resumo-totais strong { font-size: 19px; }
+.resumo-totais .negativo { color: var(--acento-claro); }
+.resumo-totais .positivo { color: #4ade80; }
+
+.vazio { padding: 26px 12px; text-align: center; color: var(--texto-3); font-size: 13.5px; }

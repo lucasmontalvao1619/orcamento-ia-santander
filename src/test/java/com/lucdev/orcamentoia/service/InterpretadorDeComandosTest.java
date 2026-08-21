@@ -217,8 +217,10 @@ class InterpretadorDeComandosTest {
     void reconheceMuitasFormasDePerguntarOSaldo() {
         when(financas.consultarSaldo()).thenReturn("saldo");
 
+        // "resumo" saiu desta lista: passou a devolver a tabela por modalidade,
+        // que ja inclui o saldo e responde melhor a pergunta.
         for (String frase : new String[]{"qual e o meu saldo", "quanto eu tenho", "como estou",
-                "estou no vermelho", "quanto sobrou", "me da um resumo", "posso gastar"}) {
+                "estou no vermelho", "quanto sobrou", "posso gastar"}) {
             assertThat(interpretador.interpretar(frase)).as(frase).contains("saldo");
         }
     }

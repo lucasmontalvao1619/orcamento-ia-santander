@@ -3,6 +3,7 @@ package com.lucdev.orcamentoia.service;
 import com.lucdev.orcamentoia.model.TipoTransacao;
 import com.lucdev.orcamentoia.tool.AppTools;
 import com.lucdev.orcamentoia.tool.FinancasTools;
+import com.lucdev.orcamentoia.tool.FixosTools;
 import com.lucdev.orcamentoia.tool.InvestimentoTools;
 import org.springframework.stereotype.Service;
 
@@ -127,11 +128,14 @@ public class InterpretadorDeComandos {
     private final FinancasTools financas;
     private final InvestimentoTools investimentos;
     private final AppTools app;
+    private final FixosTools fixos;
 
-    public InterpretadorDeComandos(FinancasTools financas, InvestimentoTools investimentos, AppTools app) {
+    public InterpretadorDeComandos(FinancasTools financas, InvestimentoTools investimentos,
+                                   AppTools app, FixosTools fixos) {
         this.financas = financas;
         this.investimentos = investimentos;
         this.app = app;
+        this.fixos = fixos;
     }
 
     // Optional.empty() significa "nao entendi" — quem chama decide o que dizer.
@@ -158,12 +162,53 @@ public class InterpretadorDeComandos {
                     + "\"qual e o meu saldo\".");
         }
 
-        // Declarar que nao ha salario fixo: antes das regras de salario, senao
-        // "nao tenho salario" cairia na consulta de salario.
+        // Declarar que nao ha salario fixo. Precisa vir ANTES do bloco de itens
+        // fixos: "nao tenho salario FIXO" contem a palavra fixo e seria lido
+        // como cadastro de gasto fixo.
         if (contem(t, "salario", "renda") && contem(t, "nao tenho", "sem salario", "nao possuo",
                 "nao recebo", "autonomo", "freelancer", "variavel", "desempregado")) {
             return Optional.of(financas.declararQueNaoTenhoSalario());
         }
+
+        // --- ganhos e gastos fixos ---------------------------------------
+        // Antes das regras genericas: "todo mes pago 120 de internet" tem valor
+        // e verbo de gasto, e viraria um lancamento avulso sem esta checagem.
+        boolean falaDeFixo = contem(t, "fixo", "todo mes", "todos os meses", "mensal", "recorrente",
+                "toda semana", "conta de");
+
+        if (contem(t, "lista", "listar", "quais", "meus", "ver") && falaDeFixo) {
+            return Optional.of(fixos.listarFixos());
+        }
+        if (contem(t, "apag", "remov", "exclu") && falaDeFixo) {
+            return idDe(t).map(fixos::apagarFixo);
+        }
+        if (contem(t, "paguei a", "paguei o", "veio", "chegou", "lanca", "lancar") && falaDeFixo) {
+            Optional<Long> id = idDe(t);
+            if (id.isPresent()) {
+                return Optional.of(fixos.lancarFixo(id.get(), valorDepoisDe(t, "veio").orElse(null)));
+            }
+        }
+        if (falaDeFixo && contem(t, "cadastr", "adicion", "registr", "criar", "tenho", "pago", "recebo", "sera")) {
+            boolean ganho = contem(t, "recebo", "ganho", "entra", "recebimento", "aluguel que recebo");
+            Optional<BigDecimal> valor = valorDe(t);
+            Integer dia = diaDe(t);
+            String descricao = descricaoDeItemFixo(t);
+            String categoria = categoriaDe(t, ganho);
+            if (categoria == null) {
+                categoria = ganho ? "extra" : "outros";
+            }
+            return Optional.of(ganho
+                    ? fixos.cadastrarGanhoFixo(descricao, categoria, valor.orElse(null), dia)
+                    : fixos.cadastrarGastoFixo(descricao, categoria, valor.orElse(null), dia));
+        }
+
+        // --- tabela por modalidade ----------------------------------------
+        if (contem(t, "resumo", "relatorio", "balanco", "tabela", "por categoria", "por modalidade",
+                "onde estou gastando", "para onde", "no que gastei", "meus gastos totais")) {
+            boolean tudo = contem(t, "tudo", "geral", "sempre", "total historico", "todos os meses");
+            return Optional.of(fixos.resumoPorCategoria(!tudo));
+        }
+
 
         // A ordem vai do mais especifico para o mais generico: "apagar movimento
         // do porquinho" precisa ser testado antes de "apagar transacao", e
@@ -339,6 +384,17 @@ public class InterpretadorDeComandos {
             return "Lancamento";
         }
         return Character.toUpperCase(descricao.charAt(0)) + descricao.substring(1);
+    }
+
+    // "todo mes pago 89 de internet" precisa virar "Internet", nao "Todo mes
+    // pago internet": a descricao aparece em toda listagem e em todo lancamento
+    // gerado por este item.
+    private static String descricaoDeItemFixo(String texto) {
+        String limpo = texto.replaceAll(
+                "\\b(todo|todos|os|mes|meses|mensal|mensalmente|recorrente|fixo|fixa|conta|de|do|da|"
+                + "pago|pagar|recebo|receber|tenho|cadastra|cadastrar|adiciona|adicionar|registra|"
+                + "registrar|criar|sera|toda|semana)\\b", " ");
+        return descricaoDe(limpo, null);
     }
 
     private static BigDecimal paraNumero(String bruto) {

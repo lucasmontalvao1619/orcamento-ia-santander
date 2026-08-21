@@ -813,6 +813,179 @@ el('abas').addEventListener('click', (e) => {
     });
     el('painel-transacoes').hidden = aba !== 'transacoes';
     el('painel-investimentos').hidden = aba !== 'investimentos';
+    el('painel-fixos').hidden = aba !== 'fixos';
+    el('painel-resumo').hidden = aba !== 'resumo';
+
+    // Recarrega ao abrir a aba, e nao no carregamento da pagina: e assim que a
+    // tabela fica sempre atual sem precisar de botao de atualizar.
+    if (aba === 'fixos') { preencherCategoriasDoFixo(); carregarFixos(); }
+    if (aba === 'resumo') carregarResumo();
+});
+
+/* --------------------------------------------------- fixos e resumo ---- */
+
+let periodoDoResumo = 'mes';
+
+// Escapa antes de interpolar em HTML: a descricao vem do usuario e pode conter
+// < ou &, que quebrariam a tabela — ou pior, injetariam marcacao.
+function texto(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+
+// O select de categoria dos fixos usa a mesma fonte unica do backend.
+function preencherCategoriasDoFixo() {
+    const tipo = el('fixo-tipo').value;
+    const lista = tipo === 'RECEITA' ? estado.categorias.receitas : estado.categorias.despesas;
+    el('fixo-categoria').innerHTML = lista
+        .map((c) => `<option value="${c.valor}">${c.rotulo}</option>`)
+        .join('');
+}
+
+el('fixo-tipo').addEventListener('change', preencherCategoriasDoFixo);
+
+async function carregarFixos() {
+    const area = el('lista-fixos');
+    try {
+        const itens = await (await fetch('/api/fixos')).json();
+        if (!itens.length) {
+            area.innerHTML = '<p class="vazio">Nenhum item fixo ainda. Cadastre acima.</p>';
+            return;
+        }
+        const linha = (i) => `
+            <tr>
+                <td>${texto(i.descricao)}</td>
+                <td><span class="etiqueta">${texto(rotuloCategoria(i.categoria))}</span></td>
+                <td>${i.tipo === 'RECEITA' ? 'Ganho' : 'Gasto'}</td>
+                <td>${i.valorPrevisto == null
+                        ? '<em class="variavel">varia</em>'
+                        : MOEDA.format(i.valorPrevisto)}</td>
+                <td>${i.diaVencimento == null ? '—' : 'dia ' + i.diaVencimento}</td>
+                <td class="acoes">
+                    <button type="button" class="mini" data-lancar="${i.id}"
+                        data-desc="${texto(i.descricao)}" data-previsto="${i.valorPrevisto ?? ''}">Lançar</button>
+                    <button type="button" class="mini mini--perigo" data-apagar-fixo="${i.id}">Apagar</button>
+                </td>
+            </tr>`;
+        area.innerHTML = `<table class="tabela"><thead><tr>
+            <th>O quê</th><th>Categoria</th><th>Tipo</th><th>Previsto</th><th>Dia</th><th></th>
+            </tr></thead><tbody>${itens.map(linha).join('')}</tbody></table>`;
+    } catch {
+        area.innerHTML = '<p class="vazio">Não foi possível carregar os itens fixos.</p>';
+    }
+}
+
+async function carregarResumo() {
+    const area = el('tabela-resumo');
+    try {
+        const r = await (await fetch(`/api/resumo?mes=${periodoDoResumo === 'mes'}`)).json();
+        if (!r.despesasPorCategoria.length && !r.receitasPorCategoria.length) {
+            area.innerHTML = '<p class="vazio">Nenhum lançamento no período.</p>';
+            return;
+        }
+        const linha = (l) => `
+            <tr>
+                <td><span class="etiqueta">${texto(rotuloCategoria(l.categoria))}</span></td>
+                <td>${MOEDA.format(l.total)}</td>
+                <td>
+                    <div class="barra"><div class="barra-preenchida" style="width:${l.percentual}%"></div></div>
+                    <span class="percentual">${Number(l.percentual).toFixed(1)}%</span>
+                </td>
+                <td>${l.lancamentos}</td>
+            </tr>`;
+        area.innerHTML = `
+            <table class="tabela">
+                <thead><tr><th>Modalidade</th><th>Total gasto</th><th>Do total</th><th>Lanç.</th></tr></thead>
+                <tbody>${r.despesasPorCategoria.map(linha).join('')}</tbody>
+            </table>
+            <div class="resumo-totais">
+                <div><span>Gastos</span><strong class="negativo">${MOEDA.format(r.totalDespesas)}</strong></div>
+                <div><span>Receitas</span><strong class="positivo">${MOEDA.format(r.totalReceitas)}</strong></div>
+                <div><span>Saldo</span><strong>${MOEDA.format(r.saldo)}</strong></div>
+            </div>`;
+    } catch {
+        area.innerHTML = '<p class="vazio">Não foi possível carregar o resumo.</p>';
+    }
+}
+
+el('filtro-resumo').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    periodoDoResumo = b.dataset.periodo;
+    el('filtro-resumo').querySelectorAll('button')
+        .forEach((x) => x.classList.toggle('ativa', x === b));
+    carregarResumo();
+});
+
+el('form-fixo').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const erro = el('erro-fixo');
+    erro.hidden = true;
+    const valor = el('fixo-valor').value;
+    const dia = el('fixo-dia').value;
+    try {
+        const resposta = await fetch('/api/fixos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                descricao: el('fixo-descricao').value,
+                categoria: el('fixo-categoria').value,
+                tipo: el('fixo-tipo').value,
+                // Vazio vira null, e nao zero: e o que marca a conta como
+                // variavel, para o usuario informar o valor ao lancar.
+                valorPrevisto: valor === '' ? null : Number(valor),
+                diaVencimento: dia === '' ? null : Number(dia)
+            })
+        });
+        if (!resposta.ok) throw new Error((await resposta.json()).detail || 'Não foi possível cadastrar.');
+        e.target.reset();
+        await carregarFixos();
+        notificar('Item fixo cadastrado.', 'ok');
+    } catch (falha) {
+        erro.textContent = falha.message;
+        erro.hidden = false;
+    }
+});
+
+el('lista-fixos').addEventListener('click', async (e) => {
+    const lancar = e.target.closest('[data-lancar]');
+    const apagar = e.target.closest('[data-apagar-fixo]');
+
+    if (lancar) {
+        const previsto = lancar.dataset.previsto;
+        // Perguntar sempre, mesmo havendo previsao: a conta pode ter vindo
+        // diferente, e e justamente esse o ponto da funcionalidade.
+        const digitado = prompt(
+            `Quanto veio "${lancar.dataset.desc}" neste mês?`,
+            previsto || '');
+        if (digitado === null) return;
+        const valor = digitado.trim() === '' ? null : Number(digitado.replace(',', '.'));
+        if (valor !== null && (!isFinite(valor) || valor <= 0)) {
+            notificar('Informe um valor positivo.', 'erro');
+            return;
+        }
+        try {
+            const r = await fetch(`/api/fixos/${lancar.dataset.lancar}/lancar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ valor })
+            });
+            if (!r.ok) throw new Error((await r.json()).detail || 'Não foi possível lançar.');
+            await Promise.all([carregarTransacoes(), carregarResumo()]);
+            notificar('Lançado no orçamento.', 'ok');
+        } catch (falha) {
+            notificar(falha.message, 'erro');
+        }
+        return;
+    }
+
+    if (apagar) {
+        if (!confirm('Apagar este item fixo? Os lançamentos já feitos continuam no orçamento.')) return;
+        await fetch(`/api/fixos/${apagar.dataset.apagarFixo}`, { method: 'DELETE' });
+        await carregarFixos();
+        notificar('Item fixo apagado.', 'ok');
+    }
 });
 
 /* ------------------------------------------------------------------- inicio */
