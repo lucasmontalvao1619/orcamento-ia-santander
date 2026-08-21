@@ -31,10 +31,13 @@ class EncerramentoAutomaticoTest {
         assertThat(EncerramentoAutomatico.deveEncerrar(agora, ultimoSinal, INICIO)).isFalse();
     }
 
+    // Rede de seguranca para quando o aviso de fechamento nao chega: navegador
+    // encerrado a forca, queda de energia. O prazo e longo porque o caminho
+    // normal de fechar e o aviso, nao este.
     @Test
-    void encerraQuandoOsSinaisParamDeVez() {
-        long agora = INICIO + Duration.ofMinutes(10).toMillis();
-        long ultimoSinal = agora - Duration.ofSeconds(20).toMillis();
+    void encerraQuandoOsSinaisParamDeVezPorMuitoTempo() {
+        long agora = INICIO + Duration.ofHours(1).toMillis();
+        long ultimoSinal = agora - Duration.ofMinutes(15).toMillis();
 
         assertThat(EncerramentoAutomatico.deveEncerrar(agora, ultimoSinal, INICIO)).isTrue();
     }
@@ -66,5 +69,54 @@ class EncerramentoAutomaticoTest {
         desligado.verificar();
 
         assertThat(desligado.isHabilitado()).isFalse();
+    }
+
+    // --- aviso de fechamento -------------------------------------------------
+
+    // O X da janela precisa encerrar depressa, sem esperar o prazo longo do
+    // sinal de vida.
+    @Test
+    void avisoDeFechamentoEncerraDepoisDaEspera() {
+        long aviso = INICIO;
+        long depois = aviso + Duration.ofSeconds(10).toMillis();
+
+        assertThat(EncerramentoAutomatico.avisoDeFechamentoExpirou(depois, aviso)).isTrue();
+    }
+
+    // Recarregar a pagina dispara o mesmo aviso. Encerrar na hora fecharia o
+    // aplicativo a cada F5.
+    @Test
+    void logoAposOAvisoAindaNaoEncerra() {
+        long aviso = INICIO;
+        long logoDepois = aviso + Duration.ofSeconds(3).toMillis();
+
+        assertThat(EncerramentoAutomatico.avisoDeFechamentoExpirou(logoDepois, aviso)).isFalse();
+    }
+
+    @Test
+    void semAvisoNaoEncerraPorEssaVia() {
+        assertThat(EncerramentoAutomatico.avisoDeFechamentoExpirou(
+                INICIO + Duration.ofHours(1).toMillis(), 0)).isFalse();
+    }
+
+    // O caso que quebrou em uso real: trocar de aba congela o temporizador do
+    // navegador e os sinais param. Com tolerancia curta, a aplicacao morria com
+    // o usuario ainda usando.
+    @Test
+    void trocarDeAbaPorMinutosNaoDerrubaAAplicacao() {
+        long agora = INICIO + Duration.ofMinutes(30).toMillis();
+        long ultimoSinal = agora - Duration.ofMinutes(4).toMillis();
+
+        assertThat(EncerramentoAutomatico.deveEncerrar(agora, ultimoSinal, INICIO)).isFalse();
+    }
+
+    @Test
+    void sinalCancelaOAvisoDeFechamento() {
+        EncerramentoAutomatico e = new EncerramentoAutomatico(true, null);
+        e.registrarAvisoDeFechamento();
+        e.registrarSinalDeVida();
+
+        // Sem excecao e sem encerramento: o aviso foi cancelado pela recarga.
+        e.verificar();
     }
 }

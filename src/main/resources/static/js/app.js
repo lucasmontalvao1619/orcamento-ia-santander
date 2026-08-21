@@ -1167,6 +1167,27 @@ function manterSessaoViva() {
     };
     sinal();
     setInterval(sinal, INTERVALO_SINAL);
+
+    // Fechar a janela avisa o servidor na hora. Sem isto, encerrar dependeria
+    // do prazo do sinal de vida, que agora e longo de proposito: navegadores
+    // congelam temporizadores de abas em segundo plano, e um prazo curto
+    // matava a aplicacao so por o usuario trocar de aba.
+    //
+    // pagehide tambem dispara ao RECARREGAR; por isso o servidor espera alguns
+    // segundos, e o primeiro sinal da pagina nova cancela o encerramento.
+    const avisarFechamento = () => {
+        const url = '/api/sessao/fechando';
+        // sendBeacon sobrevive ao fechamento da pagina; fetch nem sempre.
+        if (navigator.sendBeacon) navigator.sendBeacon(url);
+        else fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+    };
+    window.addEventListener('pagehide', avisarFechamento);
+
+    // Voltar para a aba retoma o sinal imediatamente, em vez de esperar o
+    // proximo intervalo — o navegador pode ter congelado o temporizador.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') sinal();
+    });
 }
 
 fetch('/api/sessao')

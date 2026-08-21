@@ -30,6 +30,14 @@ public class SessaoController {
         return ResponseEntity.ok(new SessaoResponse(encerramento.isHabilitado(), ambiente.isEmContainer()));
     }
 
+    // A pagina avisa ao fechar, e e assim que o X encerra o programa depressa
+    // sem depender do prazo longo do sinal de vida.
+    @PostMapping("/fechando")
+    public ResponseEntity<Void> fechando() {
+        encerramento.registrarAvisoDeFechamento();
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/sinal")
     public ResponseEntity<Void> sinalDeVida() {
         encerramento.registrarSinalDeVida();

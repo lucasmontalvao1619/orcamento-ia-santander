@@ -24,9 +24,20 @@ public class EncerramentoAutomatico {
 
     private static final Logger log = LoggerFactory.getLogger(EncerramentoAutomatico.class);
 
-    // Precisa cobrir um F5: entre o unload e o load da pagina nova os sinais
-    // param por um instante, e encerrar ali seria fechar o app a cada refresh.
-    static final Duration TOLERANCIA = Duration.ofSeconds(15);
+    // Tolerancia longa de proposito. Navegadores congelam temporizadores de
+    // abas em segundo plano — o Safari e agressivo nisso —, entao os sinais
+    // param sem que a janela tenha sido fechada. Com 15 segundos, trocar de aba
+    // por meio minuto matava a aplicacao com o usuario ainda usando.
+    //
+    // O fechamento rapido nao depende disto: a pagina avisa ao ser fechada
+    // (ver AVISO_DE_FECHAMENTO). Este prazo e so a rede de seguranca para
+    // quando o aviso nao chega — navegador encerrado a forca, queda de energia.
+    static final Duration TOLERANCIA = Duration.ofMinutes(10);
+
+    // Depois do aviso de fechamento, esta e a espera antes de encerrar. Existe
+    // porque recarregar a pagina (F5) dispara o mesmo aviso: se for recarga, o
+    // proximo sinal chega em segundos e cancela o encerramento.
+    static final Duration ESPERA_APOS_AVISO = Duration.ofSeconds(8);
 
     // Se a janela nunca abrir (navegador bloqueado, usuario fechou antes de
     // carregar), a aplicacao nao pode ficar de pe indefinidamente.
@@ -38,6 +49,10 @@ public class EncerramentoAutomatico {
 
     private volatile long ultimoSinal = 0;
 
+    // Quando a pagina avisou que estava fechando. Zero significa que nao houve
+    // aviso pendente.
+    private volatile long avisoDeFechamento = 0;
+
     public EncerramentoAutomatico(
             @Value("${app.encerrar-ao-fechar:false}") boolean habilitado,
             ApplicationContext contexto) {
@@ -47,6 +62,15 @@ public class EncerramentoAutomatico {
 
     public void registrarSinalDeVida() {
         ultimoSinal = System.currentTimeMillis();
+        // Um sinal cancela qualquer aviso de fechamento pendente: era recarga
+        // da pagina, e nao fechamento.
+        avisoDeFechamento = 0;
+    }
+
+    // A pagina avisa ao ser fechada. Nao encerra na hora: recarregar dispara o
+    // mesmo evento, e fechar o app a cada F5 seria pior que demorar 8 segundos.
+    public void registrarAvisoDeFechamento() {
+        avisoDeFechamento = System.currentTimeMillis();
     }
 
     public boolean isHabilitado() {
@@ -58,7 +82,9 @@ public class EncerramentoAutomatico {
         if (!habilitado) {
             return;
         }
-        if (!deveEncerrar(System.currentTimeMillis(), ultimoSinal, inicio)) {
+        long agora = System.currentTimeMillis();
+        if (!deveEncerrar(agora, ultimoSinal, inicio)
+                && !avisoDeFechamentoExpirou(agora, avisoDeFechamento)) {
             return;
         }
         log.info("Janela fechada: encerrando a aplicacao.");
@@ -69,6 +95,10 @@ public class EncerramentoAutomatico {
 
     // Separado da tarefa agendada para o teste conseguir exercitar a decisao
     // sem esperar em relogio real nem derrubar a JVM do teste.
+    static boolean avisoDeFechamentoExpirou(long agora, long avisoDeFechamento) {
+        return avisoDeFechamento != 0 && agora - avisoDeFechamento > ESPERA_APOS_AVISO.toMillis();
+    }
+
     static boolean deveEncerrar(long agora, long ultimoSinal, long inicio) {
         if (ultimoSinal == 0) {
             // Nenhuma janela se apresentou ate agora — e isso NAO e motivo para
