@@ -11,89 +11,65 @@ e uma variavel de ambiente.
 
 ---
 
-## Como executar
+## Baixar e usar
 
-Ha tres caminhos. O primeiro e o que da menos trabalho a quem so quer usar.
+Escolha o seu sistema. **Nao precisa instalar Java** — vem embutido nos tres.
 
-### Opcao 1 — Aplicativo de duplo clique (macOS, testado)
+| Sistema | O que baixar | Como abrir |
+|---------|--------------|------------|
+| **macOS** | `Fast Finance Helper - MACOS.zip` | Extrair e dar dois cliques. Na primeira vez: **botao direito > Abrir** |
+| **Windows** | `Fast Finance Helper - WINDOWS.zip` | Extrair. Use o **instalador `.msi`** (vai para o menu Iniciar) ou a pasta portatil |
+| **Linux** | `Fast Finance Helper - LINUX.zip` | Extrair. `.deb` para Ubuntu/Debian/Zorin, ou o `.tar.gz` portatil |
 
-Um aplicativo com o **Java embutido**: nao exige Java, Maven nem Docker na
-maquina. E o formato para mandar a aplicacao para outra pessoa.
+Os pacotes saem em **Actions > Executaveis > Run workflow**, ou automaticamente
+numa tag `v*`, quando ficam anexados a Release.
 
-```bash
-scripts/gerar-executavel.sh
-```
-
-Sai um `dist/executavel/Fast Finance Helper.app` (~149 MB). Copie para onde preferir —
-Desktop, Aplicativos — e de dois cliques. Como funciona no uso:
-
-- **Nao abre Terminal.** A aplicacao sobe em segundo plano, o macOS avisa por
-  notificacao e o navegador abre sozinho em http://localhost:8080.
-- **Fechar a janela encerra o programa.** A pagina manda um sinal de vida a
-  cada 4 segundos; quando os sinais param por mais de 15 segundos, a aplicacao
-  se encerra. A folga existe para um F5 nao fechar o aplicativo.
-- **Os lancamentos ficam em `~/.orcamento-ia`**, e nao dentro do aplicativo: um
-  programa instalado nao pode gravar na propria pasta, e no macOS o diretorio
-  de trabalho dele e a raiz do disco. Como e a pasta pessoal, cada conta do
-  sistema tem o proprio orcamento, e ele sobrevive a fechar e reabrir.
-- **Comeca zerado.** No primeiro acesso a aplicacao pergunta o salario; cada
-  pessoa configura o seu.
-
-Na **primeira vez** o macOS recusa aplicativos sem assinatura: clique com o
-**botao direito > Abrir** e confirme. Depois o duplo clique funciona normalmente.
-
-O **`.exe` do Windows** sai do mesmo empacotador pelo GitHub Actions, porque o
-`jpackage` so gera para o sistema em que roda — nao ha como produzir um binario
-Windows a partir de um Mac. Veja *Executaveis pelo GitHub Actions*, mais abaixo.
-
-O executavel embute o **Java** e o **interpretador de comandos**, entao o
-assistente escrito funciona de imediato, sem nada instalado e sem custo. O que
-ele nao embute e a **IA**: para frases livres e para o ditado por voz, informe
-uma chave da OpenAI em Configuracoes.
-
-### Opcao 2 — Docker, sem instalar dependencia nenhuma
-
-Para quem nao tem Java na maquina. O `docker-compose.yml` sobe apenas a
-aplicacao — desde que a IA passou a ser da OpenAI, nao ha mais servico de modelo
-local nem download de gigabytes.
+### Linux, em detalhe
 
 ```bash
-scripts/iniciar.sh     # macOS e Linux
+# Instalador (Ubuntu, Debian, Zorin, Mint, Pop!_OS)
+sudo dpkg -i "INSTALADOR - fast-finance-helper_1.0.0_amd64.deb"
+
+# Ou portatil, sem root, em qualquer distribuicao
+tar xzf "Versao portatil (extrair no Linux).tar.gz"
+./fast-finance-helper-portatil/bin/fast-finance-helper
 ```
 
-Na raiz tambem ha atalhos clicaveis que chamam esse script:
+> O portatil do Linux e distribuido como `.tar.gz`, e nao como pasta solta, de
+> proposito: o `tar` preserva permissoes e links simbolicos. Copiar a pasta pelo
+> macOS criava arquivos duplicados (`default_local 3.policy`) que quebravam a
+> politica criptografica da JVM e impediam a aplicacao de subir.
 
-| Sistema | Iniciar | Parar |
-|---------|---------|-------|
-| macOS | **Iniciar Fast Finance Helper** | **Parar Fast Finance Helper** |
-| Windows | **Iniciar Fast Finance Helper.bat** | `scripts/parar.sh` |
+### O aviso de seguranca e esperado
 
-O script escolhe sozinho: usa o **modo local** quando a maquina tem Java, e cai
-para o **Docker** quando nao tem. O local vem primeiro porque sobe em segundos e
-nao depende de o Docker estar aberto.
+Os executaveis nao tem assinatura digital paga, entao os dois sistemas avisam:
+no macOS, **botao direito > Abrir**; no Windows, **Mais informacoes > Executar
+assim mesmo**. E o normal para software independente.
 
-Para encerrar, `scripts/parar.sh`, que serve aos dois modos.
+### O que funciona sem mais nada
 
-> **Testado de ponta a ponta.** O `.deb` do Linux foi instalado e executado num
-> Ubuntu 24.04 real (container), respondendo comandos do assistente. O `.exe` do
-> Windows e verificado pelo GitHub Actions, que **executa o binario** numa
-> maquina Windows antes de publicar.
+Tudo, menos a voz. O assistente escrito e atendido por um interpretador proprio,
+de graca e sem internet:
 
-### Opcao 3 — Local, sem Docker e sem empacotar
+```
+gastei 60 no uber          recebi 500 de freela
+qual e o meu saldo         quanto gastei com alimentacao
+guarda 200 no porquinho    listar transacoes
+me ajuda                   (mostra a lista completa)
+```
 
-Requer **Java 17+** e **Maven**. E o caminho de quem vai mexer no codigo.
+Para **voz** e para frases livres, informe uma chave da OpenAI em
+**Configuracoes > Voz**. A chave e sua, fica so na sua maquina e consome credito
+da sua conta.
+
+## Rodar a partir do codigo
 
 ```bash
-./mvnw spring-boot:run
+./mvnw spring-boot:run          # nao precisa de chave nem de modelo baixado
+scripts/gerar-executavel.sh     # gera o executavel do sistema atual
 ```
 
-Nao precisa de Ollama nem de chave: o interpretador proprio atende os comandos.
-Quem quiser o modelo local mesmo assim:
-
-```bash
-brew install ollama && ollama serve && ollama pull qwen2.5:3b
-AI_PROVIDER=ollama ./mvnw spring-boot:run
-```
+Com Docker, sem Java instalado: `scripts/iniciar.sh`.
 
 ### Executaveis pelo GitHub Actions
 

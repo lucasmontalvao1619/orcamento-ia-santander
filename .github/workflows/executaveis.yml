@@ -200,6 +200,18 @@ jobs:
           kill $APP_PID 2>/dev/null || true
           echo "Executavel verificado rodando."
 
+      # O artefato do GitHub nao preserva permissoes nem links simbolicos. No
+      # Linux isso quebra o runtime Java: a politica criptografica falha e a
+      # aplicacao nem sobe. Empacotar em tar antes preserva os dois.
+      - name: Empacotar o Linux em tar
+        if: matrix.nome == 'linux'
+        shell: bash
+        run: |
+          cd saida
+          tar czf "fast-finance-helper-portatil.tar.gz" "Fast Finance Helper"
+          rm -rf "Fast Finance Helper"
+          ls -la
+
       - uses: actions/upload-artifact@v4
         with:
           name: orcamento-ia-${{ matrix.nome }}
