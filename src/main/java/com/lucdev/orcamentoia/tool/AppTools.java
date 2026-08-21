@@ -15,6 +15,8 @@ public class AppTools {
         return """
                 O %s e um controle de financas pessoais. Recursos disponiveis:
                 - Registrar despesas e receitas, por voz, por texto ou pelo formulario manual.
+                - Corrigir o valor, a descricao, a categoria ou o tipo de um lancamento ja feito,
+                  e apagar lancamentos.
                 - Consultar saldo, gastos por categoria e a lista de transacoes.
                 - Configurar o salario mensal e o dia em que ele cai; alterar o salario substitui
                   o valor anterior, sem somar duas vezes.
@@ -22,7 +24,8 @@ public class AppTools {
                   Categorias de receita: salario, presente e extra.
                 - Porquinho de investimento, separado do saldo do orcamento, que rende 100%% do CDI
                   capitalizado por dia util. Da para guardar, retirar e consultar quanto rendeu.
-                O banco e em memoria: os dados sao apagados quando a aplicacao reinicia.
+                Os lancamentos ficam guardados em disco: continuam ali depois de fechar
+                e abrir o aplicativo de novo.
                 """.formatted(Autoria.PROJETO);
     }
 
