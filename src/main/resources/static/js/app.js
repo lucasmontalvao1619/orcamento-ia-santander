@@ -301,6 +301,12 @@ async function carregarConfiguracao() {
     estado.salario = config.salario;
     if (config.salario != null) el('campo-salario').value = config.salario;
     if (config.diaRecebimento != null) el('campo-dia').value = config.diaRecebimento;
+    // A chave nunca volta do servidor: so o fato de existir uma configurada.
+    const temChave = Boolean(config.chaveOpenAiConfigurada);
+    el('estado-chave').hidden = !temChave;
+    el('remover-chave').hidden = !temChave;
+    el('campo-chave-openai').placeholder = temChave ? '••••••••  (guardada)' : 'sk-...';
+
     // Primeiro acesso: pede o salario antes de liberar a tela.
     el('boas-vindas').hidden = config.configurado;
     if (!config.configurado) setTimeout(() => el('salario-inicial').focus(), 60);
@@ -807,6 +813,53 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+/* --------------------------------------------- chave da OpenAI ---- */
+
+el('form-chave-openai').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const erro = el('erro-chave');
+    const botao = e.target.querySelector('button[type=submit]');
+    const chave = el('campo-chave-openai').value.trim();
+    erro.hidden = true;
+    if (!chave) {
+        erro.textContent = 'Informe a chave.';
+        erro.hidden = false;
+        return;
+    }
+    botao.disabled = true;
+    try {
+        const resposta = await fetch('/api/configuracao/chave-openai', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chave })
+        });
+        if (!resposta.ok) throw new Error('Nao foi possivel salvar a chave.');
+        el('campo-chave-openai').value = '';
+        await carregarConfiguracao();
+        await carregarStatus();
+        notificar('Chave salva. A transcrição por voz já usa o servidor.', 'ok');
+    } catch (falha) {
+        erro.textContent = falha.message;
+        erro.hidden = false;
+    } finally {
+        botao.disabled = false;
+    }
+});
+
+el('remover-chave').addEventListener('click', async () => {
+    const botao = el('remover-chave');
+    botao.disabled = true;
+    try {
+        await fetch('/api/configuracao/chave-openai', { method: 'DELETE' });
+        el('campo-chave-openai').value = '';
+        await carregarConfiguracao();
+        await carregarStatus();
+        notificar('Chave removida. O ditado volta a ser feito pelo navegador.', 'ok');
+    } finally {
+        botao.disabled = false;
+    }
+});
+
 /* ------------------------------------------------- Modo aplicativo ---- */
 
 // Rodando como programa de duplo clique, fechar a janela precisa fechar o
@@ -832,9 +885,12 @@ function manterSessaoViva() {
 fetch('/api/sessao')
     .then((r) => (r.ok ? r.json() : null))
     .then((sessao) => {
-        if (sessao && sessao.modoAplicativo) {
+        if (!sessao) return;
+        if (sessao.modoAplicativo) {
             manterSessaoViva();
         }
+        // Sem este aviso, dois minutos de espera passam por travamento.
+        el('aviso-container').hidden = !sessao.emContainer;
     })
     .catch(() => {
         /* Versao antiga do servidor ou offline: segue sem o encerramento. */

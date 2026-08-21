@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -81,6 +82,35 @@ class SemSalarioTest {
         servico.declararQueNaoTemSalario();
 
         verify(transacaoRepository, never()).delete(any());
+    }
+
+    @Test
+    void guardarAChaveDaOpenAiNaoExigeReiniciar() {
+        when(repository.findAll()).thenReturn(List.of(new Configuracao()));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Configuracao resultado = servico.definirChaveOpenAi("  sk-teste-123  ");
+
+        // O espaco em volta vem de colar a chave; guardar com espaco quebraria
+        // a autenticacao com um erro incompreensivel.
+        assertThat(resultado.getChaveOpenAi()).isEqualTo("sk-teste-123");
+        assertThat(resultado.temChaveOpenAi()).isTrue();
+    }
+
+    @Test
+    void chaveEmBrancoERecusada() {
+        assertThatThrownBy(() -> servico.definirChaveOpenAi("   "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void removerAChaveVoltaAoDitadoPeloNavegador() {
+        Configuracao com = new Configuracao();
+        com.setChaveOpenAi("sk-teste");
+        when(repository.findAll()).thenReturn(List.of(com));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(servico.removerChaveOpenAi().temChaveOpenAi()).isFalse();
     }
 
     // Mudar de ideia depois precisa funcionar: quem arruma um emprego informa o

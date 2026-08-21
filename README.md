@@ -1,4 +1,4 @@
-# Orçamento IA — Assistente Financeiro por Voz
+# Fast Finance Helper — Assistente Financeiro de Voz
 
 Controle de financas pessoais construido com **Spring Boot** e **Spring AI**, com
 interface web propria. O usuario fala ou digita um comando em linguagem natural
@@ -24,7 +24,7 @@ maquina. E o formato para mandar a aplicacao para outra pessoa.
 scripts/gerar-executavel.sh
 ```
 
-Sai um `dist/executavel/Orcamento IA.app` (~149 MB). Copie para onde preferir —
+Sai um `dist/executavel/Fast Finance Helper.app` (~149 MB). Copie para onde preferir —
 Desktop, Aplicativos — e de dois cliques. Como funciona no uso:
 
 - **Nao abre Terminal.** A aplicacao sobe em segundo plano, o macOS avisa por
@@ -66,8 +66,8 @@ Na raiz tambem ha atalhos clicaveis que chamam esse script:
 
 | Sistema | Iniciar | Parar |
 |---------|---------|-------|
-| macOS | **Iniciar Orcamento IA** | **Parar Orcamento IA** |
-| Windows | **Iniciar Orcamento IA.bat** | `scripts/parar.sh` |
+| macOS | **Iniciar Fast Finance Helper** | **Parar Fast Finance Helper** |
+| Windows | **Iniciar Fast Finance Helper.bat** | `scripts/parar.sh` |
 
 O script escolhe sozinho como subir: usa o **Docker** quando ele esta
 disponivel, e cai para o **modo local** quando nao esta, desde que a maquina
@@ -85,6 +85,10 @@ dois modos.
 > registrou "gastei 45 no mercado" inferindo a categoria, com o modelo rodando
 > dentro do container.
 >
+A propria interface avisa quando esta rodando por container, em
+**Configuracoes**: sem isso, dois minutos de espera passam por travamento e a
+pessoa fecha o aplicativo achando que quebrou.
+
 > **Uma ressalva de desempenho no macOS:** o mesmo comando levou **1min50s** no
 > container contra **~18s** rodando local. O Ollama dentro de um container Linux
 > nao alcanca a GPU do Mac e responde so em CPU. Para uso no dia a dia num Mac,
@@ -120,7 +124,7 @@ binario foi realmente produzido, para nao publicar um zip vazio.
 A aplicacao e um **PWA**: da para instalar na tela inicial e usar como um app,
 com icone proprio e sem a barra do navegador.
 
-1. Suba a aplicacao no computador (o atalho **Iniciar Orcamento IA**). Ele
+1. Suba a aplicacao no computador (o atalho **Iniciar Fast Finance Helper**). Ele
    imprime o endereco
    da maquina na rede local, algo como `http://192.168.0.10:8080`.
 2. No celular, **na mesma rede Wi-Fi**, abra esse endereco no navegador.
@@ -189,6 +193,25 @@ Exemplos que funcionam:
 ```
 
 ---
+
+## Voz e a chave da OpenAI
+
+O ditado por voz funciona de duas formas, e a segunda e opcional:
+
+| Caminho | Onde funciona | Custo |
+|---------|---------------|-------|
+| Navegador (padrao) | Chrome do computador e do Android | gratuito |
+| Whisper no servidor | qualquer navegador, **inclusive o Safari** | credito da OpenAI |
+
+O Safari nao tem reconhecimento de voz, entao no iPhone e no Mac o campo de
+texto e a saida — a menos que exista uma chave configurada. Em
+**Configuracoes > Voz** da para informar uma chave da OpenAI: a transcricao
+passa a ser feita no servidor e vale **a partir da proxima chamada, sem
+reiniciar** o aplicativo.
+
+A chave fica guardada apenas nesta maquina, no banco local dentro da pasta
+pessoal do usuario. A interface **nunca recebe a chave de volta** — so a
+informacao de que existe uma configurada.
 
 ## Recursos
 
@@ -321,7 +344,7 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-108 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+115 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
 de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
 endpoints — inclusive os status 400, 404,
@@ -337,9 +360,9 @@ suite mexeria nos lancamentos reais de quem estivesse usando o aplicativo.
 ## Estrutura
 
 ```
-├── Iniciar Orcamento IA.app      # Atalho do macOS: duplo clique e pronto
-├── Parar Orcamento IA.app        # Encerra sem precisar de Terminal
-├── Iniciar Orcamento IA.bat      # O mesmo atalho no Windows
+├── Iniciar Fast Finance Helper.app      # Atalho do macOS: duplo clique e pronto
+├── Parar Fast Finance Helper.app        # Encerra sem precisar de Terminal
+├── Iniciar Fast Finance Helper.bat      # O mesmo atalho no Windows
 ├── .github/workflows/            # Gera os executaveis de Windows e macOS
 ├── docker/                       # Dockerfile e docker-compose.yml
 ├── scripts/                      # iniciar, parar, empacotar e gerar executavel

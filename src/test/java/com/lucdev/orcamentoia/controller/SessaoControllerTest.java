@@ -1,5 +1,6 @@
 package com.lucdev.orcamentoia.controller;
 
+import com.lucdev.orcamentoia.config.AmbienteDeExecucao;
 import com.lucdev.orcamentoia.config.EncerramentoAutomatico;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,9 @@ class SessaoControllerTest {
     @MockitoBean
     private EncerramentoAutomatico encerramento;
 
+    @MockitoBean
+    private AmbienteDeExecucao ambiente;
+
     // A interface so comeca a mandar sinais se a resposta for true; se este
     // campo vier errado, ou o app nunca fecha, ou o celular manda sinal a toa.
     @Test
@@ -41,6 +45,17 @@ class SessaoControllerTest {
         mockMvc.perform(get("/api/sessao"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.modoAplicativo").value(false));
+    }
+
+    // O aviso de lentidao da interface sai daqui: sem este campo, quem roda por
+    // container espera dois minutos achando que o aplicativo travou.
+    @Test
+    void informaQuandoEstaRodandoEmContainer() throws Exception {
+        when(ambiente.isEmContainer()).thenReturn(true);
+
+        mockMvc.perform(get("/api/sessao"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.emContainer").value(true));
     }
 
     @Test

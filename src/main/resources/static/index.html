@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="author" content="Lucas Montalvão">
     <meta name="description" content="Assistente financeiro pessoal com Spring Boot, Spring AI e Tool Calling.">
-    <title>Orçamento IA — Assistente Financeiro por Voz</title>
+    <title>Fast Finance Helper — Assistente Financeiro por Voz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
                 <path d="M12 12v4M10 14h4"/>
             </svg>
         </div>
-        <h2 id="titulo-boas-vindas">Bem-vindo ao Orçamento IA</h2>
+        <h2 id="titulo-boas-vindas">Bem-vindo ao Fast Finance Helper</h2>
         <p>Para começar, informe quanto você recebe por mês — ou quanto tem disponível agora.
            Esse valor entra como a receita inicial do seu orçamento e pode ser alterado
            depois em <strong>Configurações</strong>.</p>
@@ -58,8 +58,8 @@
             </svg>
         </div>
         <div class="topo-titulo">
-            <h1>Orçamento IA</h1>
-            <p>Assistente financeiro por voz <span class="assinatura-topo">· por <strong id="autor-topo">—</strong></span></p>
+            <h1>Fast Finance Helper</h1>
+            <p>Assistente financeiro de voz <span class="assinatura-topo">· por <strong id="autor-topo">—</strong></span></p>
         </div>
     </div>
     <div class="topo-acoes">
@@ -345,6 +345,36 @@
             <button type="submit" class="botao botao--bloco">Salvar</button>
             <p id="erro-salario" class="erro" hidden></p>
         </form>
+
+        <hr class="divisor-config">
+
+        <h3 class="config-secao">Voz</h3>
+        <p class="config-texto">O ditado por voz funciona pelo próprio navegador, de graça, no
+           Chrome do computador e do Android. O <strong>Safari não tem esse recurso</strong> —
+           no iPhone e no Mac, o campo de texto continua disponível.</p>
+        <p class="config-texto">Informando uma chave da OpenAI, a transcrição passa a ser feita
+           no servidor pelo Whisper e funciona em qualquer navegador. A chave é sua, fica
+           guardada só nesta máquina e <strong>consome crédito da sua conta</strong> a cada
+           transcrição.</p>
+        <form id="form-chave-openai">
+            <label>
+                <span>Chave da OpenAI <span id="estado-chave" class="etiqueta-estado" hidden>configurada</span></span>
+                <input name="chave" id="campo-chave-openai" type="password" autocomplete="off"
+                       spellcheck="false" placeholder="sk-...">
+            </label>
+            <div class="formulario-par">
+                <button type="submit" class="botao botao--bloco">Salvar chave</button>
+                <button type="button" id="remover-chave" class="botao botao--bloco botao--secundario" hidden>Remover</button>
+            </div>
+            <p id="erro-chave" class="erro" hidden></p>
+        </form>
+
+        <div id="aviso-container" class="aviso-lento" hidden>
+            <strong>Rodando por Docker.</strong> Dentro do container o modelo usa só o
+            processador, sem a placa de vídeo. As respostas do assistente levam por volta de
+            <strong>2 minutos</strong> em vez de poucos segundos. Não é travamento — é o custo
+            do container. Para respostas rápidas, use o aplicativo instalado.
+        </div>
     </div>
 </div>
 

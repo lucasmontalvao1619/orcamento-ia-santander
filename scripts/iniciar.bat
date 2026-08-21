@@ -1,5 +1,5 @@
 @echo off
-REM Sobe o Orcamento IA no Windows. Requer apenas o Docker Desktop instalado.
+REM Sobe o Fast Finance Helper no Windows. Requer apenas o Docker Desktop instalado.
 REM Trabalha a partir da raiz do projeto, uma pasta acima desta.
 cd /d "%~dp0.."
 
@@ -11,7 +11,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Iniciando o Orcamento IA...
+echo Iniciando o Fast Finance Helper...
 echo Na primeira vez o modelo de IA e baixado ^(~1,9 GB^); pode levar alguns minutos.
 echo.
 docker compose -f docker/docker-compose.yml up --build -d

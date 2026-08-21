@@ -11,7 +11,7 @@
 set -e
 cd "$(dirname "$0")/.."
 
-NOME="Orcamento IA"
+NOME="Fast Finance Helper"
 # A primeira <version> do pom e a do parent (Spring Boot). A do projeto vem
 # depois do </parent> — sem isso o app sai carimbado com a versao do framework.
 VERSAO=$(sed -n '/<\/parent>/,$p' pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
@@ -54,7 +54,7 @@ jpackage \
     --app-version "$VERSAO" \
     --input "$PALCO" \
     --main-jar "$JAR_NOME" \
-    --icon "Iniciar Orçamento IA.app/Contents/Resources/icone.icns" \
+    --icon "Iniciar Fast Finance Helper.app/Contents/Resources/icone.icns" \
     --java-options "-Dapp.empacotado=true" \
     --java-options "-Dapp.abrir-navegador=true" \
     --java-options "-Dapp.encerrar-ao-fechar=true" \

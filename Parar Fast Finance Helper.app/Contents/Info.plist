@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Parar Orçamento IA</string>
+    <string>Parar Fast Finance Helper</string>
     <key>CFBundleDisplayName</key>
-    <string>Parar Orçamento IA</string>
+    <string>Parar Fast Finance Helper</string>
     <key>CFBundleIdentifier</key>
     <string>com.lucdev.orcamentoia.parar</string>
     <key>CFBundleExecutable</key>

@@ -40,11 +40,33 @@ public class Configuracao {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean semSalario;
 
+    // Chave da OpenAI informada pela interface, para quem quiser transcricao de
+    // voz no servidor (Whisper) em vez do reconhecimento do navegador.
+    //
+    // Fica em texto puro no banco local, dentro da pasta pessoal do usuario.
+    // Nao ha servidor nem outros usuarios: quem alcanca este arquivo ja esta na
+    // conta da pessoa. Ainda assim, a interface nunca devolve a chave de volta —
+    // so informa se existe uma configurada.
+    @Column(length = 200)
+    private String chaveOpenAi;
+
     public Configuracao() {
     }
 
     public boolean isConfigurado() {
         return salario != null || semSalario;
+    }
+
+    public String getChaveOpenAi() {
+        return chaveOpenAi;
+    }
+
+    public void setChaveOpenAi(String chaveOpenAi) {
+        this.chaveOpenAi = chaveOpenAi;
+    }
+
+    public boolean temChaveOpenAi() {
+        return chaveOpenAi != null && !chaveOpenAi.isBlank();
     }
 
     public boolean isSemSalario() {

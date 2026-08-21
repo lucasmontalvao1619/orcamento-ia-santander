@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.audio.transcription.AudioTranscription;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
+import com.lucdev.orcamentoia.model.Configuracao;
 import org.springframework.ai.openai.OpenAiAudioTranscriptionModel;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,11 +30,21 @@ class TranscricaoServiceTest {
     @Mock
     private OpenAiAudioTranscriptionModel transcriptionModel;
 
+    @Mock
+    private ConfiguracaoService configuracaoService;
+
     @InjectMocks
     private TranscricaoService transcricaoService;
 
+    // Sem chave guardada, vale o cliente montado na inicializacao — que e o
+    // mock destes testes.
+    private void semChaveGuardada() {
+        when(configuracaoService.obter()).thenReturn(new Configuracao());
+    }
+
     @Test
     void devolveOTextoTranscrito() {
+        semChaveGuardada();
         when(transcriptionModel.call(any(AudioTranscriptionPrompt.class)))
                 .thenReturn(new AudioTranscriptionResponse(new AudioTranscription("gastei 60 no uber")));
 
@@ -48,6 +59,7 @@ class TranscricaoServiceTest {
     // por isso o service sobrescreve getFilename().
     @Test
     void preservaONomeDoArquivoParaOProvedorReconhecerOFormato() {
+        semChaveGuardada();
         when(transcriptionModel.call(any(AudioTranscriptionPrompt.class)))
                 .thenReturn(new AudioTranscriptionResponse(new AudioTranscription("ok")));
 

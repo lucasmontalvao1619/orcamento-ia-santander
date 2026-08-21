@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gera o zip distribuivel do Orcamento IA.
+# Gera o zip distribuivel do Fast Finance Helper.
 # O pacote sai limpo: sem build, sem dados e sem historico do git — assim quem
 # extrair comeca com o orcamento zerado.
 set -e
@@ -30,7 +30,7 @@ zip -r "$PACOTE" . \
 echo "Pacote gerado: $PACOTE  ($(du -h "$PACOTE" | cut -f1))"
 echo ""
 echo "Quem receber precisa apenas do Docker instalado:"
-echo "  macOS    extrair e dar dois cliques em 'Iniciar Orcamento IA'"
+echo "  macOS    extrair e dar dois cliques em 'Iniciar Fast Finance Helper'"
 echo "           (na primeira vez: clique com o botao direito > Abrir)"
-echo "  Windows  extrair e dar dois cliques em 'Iniciar Orcamento IA.bat'"
+echo "  Windows  extrair e dar dois cliques em 'Iniciar Fast Finance Helper.bat'"
 echo "  Terminal scripts/iniciar.sh"

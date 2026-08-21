@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Atalho clicavel do Orcamento IA.
+# Atalho clicavel do Fast Finance Helper.
 #
 # Um duplo clique aqui nao abre Terminal nenhum: a aplicacao sobe em segundo
 # plano e o navegador abre sozinho quando ela fica pronta. O acompanhamento e
@@ -8,7 +8,7 @@
 # logs/inicializacao.log para quando algo der errado.
 #
 # O .app fica na raiz do projeto, entao a raiz e tres pastas acima daqui:
-#   <raiz>/Iniciar Orçamento IA.app/Contents/MacOS/iniciar
+#   <raiz>/Iniciar Fast Finance Helper.app/Contents/MacOS/iniciar
 
 RAIZ="$(cd "$(dirname "$0")/../../.." && pwd)"
 SCRIPT="$RAIZ/scripts/iniciar.sh"
@@ -16,11 +16,11 @@ LOG="$RAIZ/logs/inicializacao.log"
 URL="http://localhost:8080"
 
 avisar() {
-    osascript -e "display notification \"$1\" with title \"Orçamento IA\"" > /dev/null 2>&1
+    osascript -e "display notification \"$1\" with title \"Fast Finance Helper\"" > /dev/null 2>&1
 }
 
 alerta() {
-    osascript -e "display alert \"Orçamento IA\" message \"$1\" as critical" > /dev/null 2>&1
+    osascript -e "display alert \"Fast Finance Helper\" message \"$1\" as critical" > /dev/null 2>&1
     exit 1
 }
 

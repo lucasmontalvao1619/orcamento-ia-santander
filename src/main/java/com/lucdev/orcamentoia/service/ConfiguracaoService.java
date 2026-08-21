@@ -85,6 +85,26 @@ public class ConfiguracaoService {
         return repository.save(configuracao);
     }
 
+    // A chave e guardada para valer na proxima chamada de voz, sem reiniciar a
+    // aplicacao: o cliente da OpenAI e montado na hora do uso, e nao na
+    // inicializacao, justamente para isto funcionar.
+    @Transactional
+    public Configuracao definirChaveOpenAi(String chave) {
+        if (chave == null || chave.isBlank()) {
+            throw new IllegalArgumentException("A chave da OpenAI nao pode ficar em branco.");
+        }
+        Configuracao configuracao = repository.findAll().stream().findFirst().orElseGet(Configuracao::new);
+        configuracao.setChaveOpenAi(chave.trim());
+        return repository.save(configuracao);
+    }
+
+    @Transactional
+    public Configuracao removerChaveOpenAi() {
+        Configuracao configuracao = repository.findAll().stream().findFirst().orElseGet(Configuracao::new);
+        configuracao.setChaveOpenAi(null);
+        return repository.save(configuracao);
+    }
+
     private Transacao buscarTransacaoSalario(Configuracao configuracao) {
         if (configuracao.getTransacaoSalarioId() == null) {
             return null;

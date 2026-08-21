@@ -66,7 +66,7 @@ jobs:
           VERSAO=$(sed -n '/<\/parent>/,$p' pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
           jpackage \
             --type app-image \
-            --name "Orcamento IA" \
+            --name "Fast Finance Helper" \
             --app-version "$VERSAO" \
             --input palco \
             --main-jar "$(basename "$JAR")" \
@@ -83,9 +83,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.nome }}" = "windows" ]; then
-            test -f "saida/Orcamento IA/Orcamento IA.exe" || { echo "exe nao foi gerado"; exit 1; }
+            test -f "saida/Fast Finance Helper/Fast Finance Helper.exe" || { echo "exe nao foi gerado"; exit 1; }
           else
-            test -d "saida/Orcamento IA.app" || { echo "app nao foi gerado"; exit 1; }
+            test -d "saida/Fast Finance Helper.app" || { echo "app nao foi gerado"; exit 1; }
           fi
           echo "empacotamento conferido"
 
@@ -101,7 +101,7 @@ jobs:
         run: |
           cd saida
           if [ "${{ matrix.nome }}" = "windows" ]; then
-            7z a "../orcamento-ia-windows.zip" "Orcamento IA"
+            7z a "../orcamento-ia-windows.zip" "Fast Finance Helper"
           else
             # O -y preserva os links simbolicos do runtime Java dentro do .app;
             # sem ele o pacote incha e o executavel pode nem abrir.

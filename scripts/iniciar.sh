@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe o Orcamento IA.
+# Sobe o Fast Finance Helper.
 #
 # Ha dois caminhos, e o script escolhe sozinho:
 #
@@ -46,7 +46,7 @@ esperar_e_abrir() {
 }
 
 if curl -s -o /dev/null -m 2 "$URL/api/sobre" 2>/dev/null; then
-    echo "O Orcamento IA ja esta rodando."
+    echo "O Fast Finance Helper ja esta rodando."
     anunciar_pronto
     if command -v open > /dev/null 2>&1; then open "$URL"; fi
     exit 0
@@ -54,7 +54,7 @@ fi
 
 # --- Caminho 1: Docker ------------------------------------------------------
 if docker info > /dev/null 2>&1; then
-    echo "Iniciando o Orcamento IA (Docker)..."
+    echo "Iniciando o Fast Finance Helper (Docker)..."
     echo "Na primeira vez o modelo de IA e baixado (~1,9 GB); pode levar alguns minutos."
     echo ""
     docker compose -f docker/docker-compose.yml up --build -d

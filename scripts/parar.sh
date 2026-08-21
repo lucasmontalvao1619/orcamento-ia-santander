@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Encerra o Orcamento IA, tenha ele subido por container ou em modo local.
+# Encerra o Fast Finance Helper, tenha ele subido por container ou em modo local.
 cd "$(dirname "$0")/.."
 
 PORTA=8080

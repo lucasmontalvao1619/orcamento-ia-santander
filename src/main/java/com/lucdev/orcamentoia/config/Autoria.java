@@ -15,7 +15,7 @@ public final class Autoria {
     public static final String LINKEDIN = "https://www.linkedin.com/in/lucas-mgoliveira/";
     public static final String INSTAGRAM = "https://www.instagram.com/lukk.oliv/";
     public static final String SITE = "https://lucdevv.vercel.app";
-    public static final String PROJETO = "Orçamento IA";
+    public static final String PROJETO = "Fast Finance Helper";
     public static final String DESCRICAO =
             "Assistente financeiro pessoal com Spring Boot, Spring AI e Tool Calling.";
 
