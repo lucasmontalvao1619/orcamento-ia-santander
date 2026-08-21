@@ -1,7 +1,10 @@
 package com.lucdev.orcamentoia.tool;
 
+import com.lucdev.orcamentoia.exception.RecursoNaoEncontradoException;
+import com.lucdev.orcamentoia.model.Configuracao;
 import com.lucdev.orcamentoia.model.TipoTransacao;
 import com.lucdev.orcamentoia.model.Transacao;
+import com.lucdev.orcamentoia.service.ConfiguracaoService;
 import com.lucdev.orcamentoia.service.TransacaoService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +28,9 @@ class FinancasToolsTest {
 
     @Mock
     private TransacaoService transacaoService;
+
+    @Mock
+    private ConfiguracaoService configuracaoService;
 
     @InjectMocks
     private FinancasTools financasTools;
@@ -86,6 +92,90 @@ class FinancasToolsTest {
 
         assertThat(resposta.lines()).hasSize(3);
         assertThat(resposta).contains("Salario", "3000,00", "Mercado", "500,00");
+    }
+
+    @Test
+    void definirSalarioConfirmaOValorEODiaDoRecebimento() {
+        when(configuracaoService.definirSalario(new BigDecimal("3000.00"), 15))
+                .thenReturn(configuracao("3000.00", 15));
+
+        String resposta = financasTools.definirSalario(new BigDecimal("3000.00"), 15);
+
+        assertThat(resposta).contains("3000,00", "dia 15");
+    }
+
+    // Sem dia informado a resposta nao pode inventar uma data que o usuario nao deu.
+    @Test
+    void definirSalarioOmiteODiaQuandoNaoFoiInformado() {
+        when(configuracaoService.definirSalario(new BigDecimal("3000.00"), null))
+                .thenReturn(configuracao("3000.00", null));
+
+        String resposta = financasTools.definirSalario(new BigDecimal("3000.00"), null);
+
+        assertThat(resposta).contains("3000,00").doesNotContain("dia");
+    }
+
+    @Test
+    void consultarSalarioAvisaQuandoNadaFoiConfigurado() {
+        when(configuracaoService.obter()).thenReturn(new Configuracao());
+
+        assertThat(financasTools.consultarSalario()).contains("Nenhum salario");
+    }
+
+    @Test
+    void consultarSalarioInformaOValorConfigurado() {
+        when(configuracaoService.obter()).thenReturn(configuracao("2500.00", 5));
+
+        assertThat(financasTools.consultarSalario()).contains("2500,00", "dia 5");
+    }
+
+    // A resposta descreve o estado final do lancamento, nao o que foi enviado:
+    // e por ela que o usuario confirma que a correcao pegou.
+    @Test
+    void atualizarTransacaoDescreveOLancamentoJaCorrigido() {
+        Transacao corrigida = comId(3L, transacao("Uber", "60.00", "transporte", TipoTransacao.DESPESA));
+        when(transacaoService.atualizar(eq(3L), any(), eq(new BigDecimal("60.00")), any(), any()))
+                .thenReturn(corrigida);
+
+        String resposta = financasTools.atualizarTransacao(
+                3L, new BigDecimal("60.00"), null, null, null);
+
+        assertThat(resposta).contains("3", "DESPESA", "60,00", "transporte", "Uber");
+    }
+
+    @Test
+    void atualizarTransacaoPropagaIdInexistente() {
+        when(transacaoService.atualizar(eq(99L), any(), any(), any(), any()))
+                .thenThrow(new RecursoNaoEncontradoException("Nao existe transacao com o id 99."));
+
+        assertThatThrownBy(() -> financasTools.atualizarTransacao(99L, new BigDecimal("10.00"), null, null, null))
+                .isInstanceOf(RecursoNaoEncontradoException.class);
+    }
+
+    @Test
+    void apagarTransacaoConfirmaOQueFoiRemovido() {
+        when(transacaoService.apagar(4L))
+                .thenReturn(comId(4L, transacao("Cinema", "45.00", "lazer", TipoTransacao.DESPESA)));
+
+        String resposta = financasTools.apagarTransacao(4L);
+
+        assertThat(resposta).contains("DESPESA", "45,00", "lazer");
+    }
+
+    @Test
+    void apagarTransacaoPropagaIdInexistente() {
+        when(transacaoService.apagar(99L))
+                .thenThrow(new RecursoNaoEncontradoException("Nao existe transacao com o id 99."));
+
+        assertThatThrownBy(() -> financasTools.apagarTransacao(99L))
+                .isInstanceOf(RecursoNaoEncontradoException.class);
+    }
+
+    private Configuracao configuracao(String salario, Integer diaRecebimento) {
+        Configuracao configuracao = new Configuracao();
+        configuracao.setSalario(new BigDecimal(salario));
+        configuracao.setDiaRecebimento(diaRecebimento);
+        return configuracao;
     }
 
     private Transacao transacao(String descricao, String valor, String categoria, TipoTransacao tipo) {
