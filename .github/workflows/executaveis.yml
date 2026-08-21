@@ -29,6 +29,11 @@ jobs:
           - sistema: macos-latest
             nome: macos
             icone: scripts/icone.icns
+          # Zorin e derivado do Ubuntu, e o Ubuntu do Debian: o mesmo .deb
+          # atende os tres. O app-image acompanha para quem usa outra familia.
+          - sistema: ubuntu-latest
+            nome: linux
+            icone: scripts/icone.png
 
     runs-on: ${{ matrix.sistema }}
 
@@ -41,6 +46,12 @@ jobs:
           java-version: "21"
           distribution: temurin
           cache: maven
+
+      # O jpackage monta o .deb chamando ferramentas do sistema; sem elas ele
+      # falha so na hora de empacotar, depois de todo o build.
+      - name: Preparar o empacotador do Debian
+        if: matrix.nome == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot binutils
 
       - name: Rodar os testes
         run: ./mvnw -B test
@@ -79,14 +90,42 @@ jobs:
       # Verificacao minima de que o empacotamento produziu algo utilizavel: sem
       # isto, um jpackage que falhasse pela metade viraria um zip vazio que so
       # daria erro na mao de quem baixou.
+      # Instalador nativo para a familia Debian, alem da pasta portatil.
+      - name: Gerar o .deb
+        if: matrix.nome == 'linux'
+        shell: bash
+        run: |
+          JAR=$(ls palco/*.jar | head -1)
+          VERSAO=$(sed -n '/<\/parent>/,$p' pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+          jpackage \
+            --type deb \
+            --name "fast-finance-helper" \
+            --app-version "$VERSAO" \
+            --input palco \
+            --main-jar "$(basename "$JAR")" \
+            --icon scripts/icone.png \
+            --linux-shortcut \
+            --linux-menu-group Office \
+            --description "Assistente financeiro de voz" \
+            --vendor "Lucas Montalvao" \
+            --java-options "-Dapp.empacotado=true" \
+            --java-options "-Dapp.abrir-navegador=true" \
+            --java-options "-Dapp.encerrar-ao-fechar=true" \
+            --dest saida
+          ls -la saida/
+
       - name: Conferir o resultado
         shell: bash
         run: |
-          if [ "${{ matrix.nome }}" = "windows" ]; then
-            test -f "saida/Fast Finance Helper/Fast Finance Helper.exe" || { echo "exe nao foi gerado"; exit 1; }
-          else
-            test -d "saida/Fast Finance Helper.app" || { echo "app nao foi gerado"; exit 1; }
-          fi
+          case "${{ matrix.nome }}" in
+            windows)
+              test -f "saida/Fast Finance Helper/Fast Finance Helper.exe" || { echo "exe nao foi gerado"; exit 1; } ;;
+            macos)
+              test -d "saida/Fast Finance Helper.app" || { echo "app nao foi gerado"; exit 1; } ;;
+            linux)
+              test -f "saida/Fast Finance Helper/bin/Fast Finance Helper" || { echo "binario nao foi gerado"; exit 1; }
+              ls saida/*.deb > /dev/null 2>&1 || { echo "deb nao foi gerado"; exit 1; } ;;
+          esac
           echo "empacotamento conferido"
 
       - uses: actions/upload-artifact@v4

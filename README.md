@@ -110,12 +110,23 @@ ollama pull qwen2.5:3b     # baixa o modelo (~1,9 GB, so na primeira vez)
 
 ### Executaveis pelo GitHub Actions
 
+| Sistema | O que sai | Como usar |
+|---------|-----------|-----------|
+| macOS | `Fast Finance Helper.app` | dois cliques |
+| Windows | pasta com `Fast Finance Helper.exe` | dois cliques no .exe |
+| Linux | `.deb` **e** pasta portatil | `sudo dpkg -i fast-finance-helper_1.0.0_amd64.deb` |
+
+O `.deb` atende **Ubuntu, Debian e Zorin** — o Zorin e derivado do Ubuntu, que e
+derivado do Debian. Para outras familias (Fedora, Arch), use a pasta portatil e
+execute `bin/Fast Finance Helper`.
+
+
 O `jpackage` so empacota para o sistema em que roda, entao o `.exe` do Windows
 nao pode ser gerado a partir de um Mac. O workflow `.github/workflows/
 executaveis.yml` resolve isso pedindo uma maquina de cada sistema ao GitHub.
 
 Va em **Actions > Executaveis > Run workflow**, ou publique uma tag `v*`: os
-dois executaveis saem prontos como artefatos, e numa tag ainda sao anexados a
+executaveis dos tres sistemas saem prontos como artefatos, e numa tag ainda sao anexados a
 Release. O workflow roda a suite de testes antes de empacotar e confere se o
 binario foi realmente produzido, para nao publicar um zip vazio.
 
