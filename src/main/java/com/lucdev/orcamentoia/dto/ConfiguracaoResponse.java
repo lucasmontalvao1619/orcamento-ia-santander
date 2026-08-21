@@ -7,12 +7,14 @@ import java.math.BigDecimal;
 public record ConfiguracaoResponse(
         boolean configurado,
         BigDecimal salario,
-        Integer diaRecebimento
+        Integer diaRecebimento,
+        boolean semSalario
 ) {
     public static ConfiguracaoResponse de(Configuracao configuracao) {
         return new ConfiguracaoResponse(
                 configuracao.isConfigurado(),
                 configuracao.getSalario(),
-                configuracao.getDiaRecebimento());
+                configuracao.getDiaRecebimento(),
+                configuracao.isSemSalario());
     }
 }

@@ -609,6 +609,30 @@ el('form-boas-vindas').addEventListener('submit', async (e) => {
     }
 });
 
+// Saida para quem vive de renda variavel: sai das boas-vindas sem informar
+// valor nenhum. Inventar um salario aqui entraria como receita no saldo e
+// mentiria sobre quanto a pessoa tem.
+el('sem-salario').addEventListener('click', async () => {
+    const erro = el('erro-boas-vindas');
+    const botao = el('sem-salario');
+    erro.hidden = true;
+    botao.disabled = true;
+    try {
+        const resposta = await fetch('/api/configuracao/sem-salario', { method: 'PUT' });
+        if (!resposta.ok) throw new Error('Nao foi possivel salvar. Tente de novo.');
+        const config = await resposta.json();
+        estado.salario = config.salario;
+        el('boas-vindas').hidden = true;
+        await carregarTransacoes();
+        notificar('Pronto. Registre cada entrada de dinheiro conforme receber.', 'ok');
+    } catch (falha) {
+        erro.textContent = falha.message;
+        erro.hidden = false;
+    } finally {
+        botao.disabled = false;
+    }
+});
+
 el('botao-config').addEventListener('click', () => {
     el('modal-config').hidden = false;
     setTimeout(() => el('campo-salario').focus(), 60);

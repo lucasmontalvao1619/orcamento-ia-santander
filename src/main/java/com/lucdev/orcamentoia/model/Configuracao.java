@@ -27,11 +27,26 @@ public class Configuracao {
     // agendador criando lancamentos sozinho.
     private Integer diaRecebimento;
 
+    // Quem vive de renda variavel — autonomo, freelancer, quem ainda nao
+    // trabalha — nao tem um valor mensal para informar, e sem esta marca ficaria
+    // preso na tela de boas-vindas, ja que "configurado" significava ter
+    // salario. Aqui a pessoa declara que nao tem, e lanca cada entrada conforme
+    // o dinheiro chega.
+    private boolean semSalario;
+
     public Configuracao() {
     }
 
     public boolean isConfigurado() {
-        return salario != null;
+        return salario != null || semSalario;
+    }
+
+    public boolean isSemSalario() {
+        return semSalario;
+    }
+
+    public void setSemSalario(boolean semSalario) {
+        this.semSalario = semSalario;
     }
 
     public Long getId() {

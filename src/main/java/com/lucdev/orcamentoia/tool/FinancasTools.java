@@ -49,6 +49,12 @@ public class FinancasTools {
     @Tool(description = "Consulta o salario mensal configurado pelo usuario.")
     public String consultarSalario() {
         Configuracao configuracao = configuracaoService.obter();
+        // Quem declarou nao ter salario fixo nao esta "sem configurar": dizer
+        // isso mandaria o usuario configurar algo que ele decidiu nao ter.
+        if (configuracao.isSemSalario()) {
+            return "Voce indicou que nao tem salario fixo. As entradas de dinheiro sao "
+                    + "registradas uma a uma, conforme voce recebe.";
+        }
         if (!configuracao.isConfigurado()) {
             return "Nenhum salario foi configurado ainda.";
         }

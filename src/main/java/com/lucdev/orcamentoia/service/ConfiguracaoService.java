@@ -52,6 +52,7 @@ public class ConfiguracaoService {
         receita = transacaoRepository.save(receita);
 
         configuracao.setSalario(salario);
+        configuracao.setSemSalario(false);
         configuracao.setTransacaoSalarioId(receita.getId());
         if (diaRecebimento != null) {
             if (diaRecebimento < 1 || diaRecebimento > 31) {
@@ -59,6 +60,28 @@ public class ConfiguracaoService {
             }
             configuracao.setDiaRecebimento(diaRecebimento);
         }
+        return repository.save(configuracao);
+    }
+
+    // Para quem vive de renda variavel. Sem isto, a unica forma de sair da tela
+    // de boas-vindas seria inventar um salario que a pessoa nao tem — e esse
+    // valor entraria no saldo como receita, mentindo sobre quanto ela tem.
+    @Transactional
+    public Configuracao declararQueNaoTemSalario() {
+        Configuracao configuracao = repository.findAll().stream().findFirst().orElseGet(Configuracao::new);
+
+        // Se ja havia um salario, a receita dele precisa sair junto: deixa-la no
+        // orcamento manteria no saldo um dinheiro que a pessoa acabou de dizer
+        // que nao recebe.
+        Transacao receita = buscarTransacaoSalario(configuracao);
+        if (receita != null) {
+            transacaoRepository.delete(receita);
+        }
+
+        configuracao.setSalario(null);
+        configuracao.setTransacaoSalarioId(null);
+        configuracao.setDiaRecebimento(null);
+        configuracao.setSemSalario(true);
         return repository.save(configuracao);
     }
 

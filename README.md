@@ -186,7 +186,10 @@ Exemplos que funcionam:
 
 ## Recursos
 
-- **Onboarding** no primeiro acesso, perguntando o salario inicial.
+- **Onboarding** no primeiro acesso, perguntando o salario inicial — com a saida
+  **"nao tenho salario fixo"** para renda variavel, autonomo ou quem ainda nao
+  tem renda: o orcamento comeca zerado e cada entrada e registrada conforme o
+  dinheiro chega.
 - **Lancamentos** por voz, texto ou formulario, com correcao e exclusao.
 - **Cinco categorias fixas de despesa** (alimentacao, transporte, moradia, lazer,
   saude) e tres de receita (salario, presente, extra).
@@ -200,6 +203,14 @@ de voz sem consumir credito de transcricao.
 ---
 
 ## Decisoes de implementacao
+
+**Nao ter salario e uma resposta valida.** Antes, "configurado" significava ter
+um salario, entao quem vive de renda variavel so sairia da tela de boas-vindas
+inventando um valor — que entraria no saldo como receita e mentiria sobre quanto
+a pessoa tem. Declarar que nao tem salario libera o app com o orcamento zerado.
+Voltar atras funciona nos dois sentidos, e ao declarar que nao tem salario a
+receita antiga e apagada: mante-la deixaria no saldo um dinheiro que a pessoa
+acabou de dizer que nao recebe.
 
 **O salario nao duplica no saldo.** A configuracao guarda o id da receita de
 salario; alterar o valor atualiza aquela transacao em vez de criar outra.
@@ -252,6 +263,7 @@ por `/api/sobre`, alem de alimentar a ferramenta que responde quem fez o projeto
 | POST | `/api/assistente/audio` | Processa um comando de voz (requer OpenAI) |
 | GET | `/api/configuracao` | Estado da configuracao inicial e salario |
 | PUT | `/api/configuracao/salario` | Define ou altera o salario e o dia |
+| PUT | `/api/configuracao/sem-salario` | Declara que nao ha salario fixo |
 | GET | `/api/categorias` | Categorias de despesa e de receita |
 | POST | `/api/transacoes` | Cria uma transacao |
 | PUT | `/api/transacoes/{id}` | Corrige uma transacao (campos opcionais) |
@@ -294,7 +306,7 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-101 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+107 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
 de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
 endpoints — inclusive os status 400, 404,

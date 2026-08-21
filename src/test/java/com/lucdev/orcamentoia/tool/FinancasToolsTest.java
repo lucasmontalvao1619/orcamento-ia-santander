@@ -122,6 +122,19 @@ class FinancasToolsTest {
         assertThat(financasTools.consultarSalario()).contains("Nenhum salario");
     }
 
+    // "Nenhum salario configurado" mandaria o usuario configurar algo que ele
+    // decidiu nao ter.
+    @Test
+    void consultarSalarioRespeitaQuemNaoTemSalarioFixo() {
+        Configuracao semSalario = new Configuracao();
+        semSalario.setSemSalario(true);
+        when(configuracaoService.obter()).thenReturn(semSalario);
+
+        assertThat(financasTools.consultarSalario())
+                .contains("nao tem salario fixo")
+                .doesNotContain("Nenhum salario foi configurado");
+    }
+
     @Test
     void consultarSalarioInformaOValorConfigurado() {
         when(configuracaoService.obter()).thenReturn(configuracao("2500.00", 5));

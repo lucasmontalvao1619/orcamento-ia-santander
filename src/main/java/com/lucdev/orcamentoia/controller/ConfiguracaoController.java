@@ -40,6 +40,13 @@ public class ConfiguracaoController {
         return ResponseEntity.ok(ConfiguracaoResponse.de(configuracaoService.definirSalario(request.salario(), request.diaRecebimento())));
     }
 
+    // Quem vive de renda variavel declara isso aqui e sai da tela de boas-vindas
+    // sem informar valor nenhum, lancando cada entrada conforme o dinheiro chega.
+    @PutMapping("/configuracao/sem-salario")
+    public ResponseEntity<ConfiguracaoResponse> declararQueNaoTemSalario() {
+        return ResponseEntity.ok(ConfiguracaoResponse.de(configuracaoService.declararQueNaoTemSalario()));
+    }
+
     // Uma fonte unica de categorias para a interface, para que o formulario e o
     // rotulo exibido na tabela nao saiam de listas duplicadas no JavaScript.
     @GetMapping("/categorias")

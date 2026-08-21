@@ -97,6 +97,21 @@ class ConfiguracaoControllerTest {
         verify(configuracaoService, never()).definirSalario(any(), any());
     }
 
+    // Sem este endpoint, quem nao tem salario fixo ficaria preso na tela de
+    // boas-vindas ou teria que inventar um valor.
+    @Test
+    void declararQueNaoTemSalarioLiberaOApp() throws Exception {
+        Configuracao semSalario = new Configuracao();
+        semSalario.setSemSalario(true);
+        when(configuracaoService.declararQueNaoTemSalario()).thenReturn(semSalario);
+
+        mockMvc.perform(put("/api/configuracao/sem-salario"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.configurado").value(true))
+                .andExpect(jsonPath("$.semSalario").value(true))
+                .andExpect(jsonPath("$.salario").doesNotExist());
+    }
+
     // A interface monta os selects a partir daqui em vez de repetir as listas no
     // JavaScript: as categorias tem uma fonte unica, que e o enum do backend.
     @Test
