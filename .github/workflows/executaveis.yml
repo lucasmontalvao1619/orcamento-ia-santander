@@ -71,6 +71,7 @@ jobs:
             --icon "${{ matrix.icone }}" \
             --java-options "-Dapp.empacotado=true" \
             --java-options "-Dapp.abrir-navegador=true" \
+            --java-options "-Dapp.encerrar-ao-fechar=true" \
             --dest saida
 
       # Verificacao minima de que o empacotamento produziu algo utilizavel: sem

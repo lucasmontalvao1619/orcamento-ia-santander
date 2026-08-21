@@ -44,6 +44,7 @@ jpackage \
     --icon "Iniciar Orçamento IA.app/Contents/Resources/icone.icns" \
     --java-options "-Dapp.empacotado=true" \
     --java-options "-Dapp.abrir-navegador=true" \
+    --java-options "-Dapp.encerrar-ao-fechar=true" \
     --dest "$SAIDA"
 
 echo ""

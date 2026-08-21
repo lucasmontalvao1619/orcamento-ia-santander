@@ -782,3 +782,36 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
+
+/* ------------------------------------------------- Modo aplicativo ---- */
+
+// Rodando como programa de duplo clique, fechar a janela precisa fechar o
+// programa. A pagina avisa que esta viva enquanto estiver aberta; quando os
+// avisos param, o servidor se encerra sozinho.
+//
+// So vale no modo aplicativo: no celular ou em servidor a aplicacao deve
+// continuar de pe com a aba fechada, e mandar sinal seria trafego a toa.
+const INTERVALO_SINAL = 4000;
+
+function manterSessaoViva() {
+    const sinal = () => {
+        // keepalive permite que o ultimo sinal ainda saia enquanto a pagina se
+        // fecha, evitando encerrar por engano quem so recarregou.
+        fetch('/api/sessao/sinal', { method: 'POST', keepalive: true }).catch(() => {
+            /* Servidor caiu ou esta reiniciando: nada a fazer aqui. */
+        });
+    };
+    sinal();
+    setInterval(sinal, INTERVALO_SINAL);
+}
+
+fetch('/api/sessao')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((sessao) => {
+        if (sessao && sessao.modoAplicativo) {
+            manterSessaoViva();
+        }
+    })
+    .catch(() => {
+        /* Versao antiga do servidor ou offline: segue sem o encerramento. */
+    });
