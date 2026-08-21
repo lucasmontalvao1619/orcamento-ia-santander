@@ -1,5 +1,6 @@
 package com.lucdev.orcamentoia.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,6 +33,11 @@ public class Configuracao {
     // preso na tela de boas-vindas, ja que "configurado" significava ter
     // salario. Aqui a pessoa declara que nao tem, e lanca cada entrada conforme
     // o dinheiro chega.
+    // O default na definicao da coluna nao e decoracao: sem ele, o Hibernate
+    // gera "add column sem_salario boolean not null" e a atualizacao quebra em
+    // qualquer instalacao que ja tenha uma linha de configuracao — as linhas
+    // existentes ficariam com NULL numa coluna que nao aceita NULL.
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean semSalario;
 
     public Configuracao() {

@@ -37,8 +37,19 @@ mkdir -p "$PALCO" "$SAIDA"
 cp "$JAR" "$PALCO/"
 
 echo "Empacotando com o Java embutido..."
+# Sem --add-modules o jpackage embute o JDK inteiro. Esta lista sai do jdeps
+# mais os modulos que ele nao enxerga: Spring e Hibernate carregam muita coisa
+# por reflexao, e um modulo faltando so aparece como erro em tempo de execucao.
+# Enxugar a JVM e o maior ganho de tamanho disponivel sem mexer no codigo.
+MODULOS="java.base,java.compiler,java.desktop,java.instrument,java.logging,\
+java.management,java.naming,java.net.http,java.prefs,java.rmi,java.scripting,\
+java.security.jgss,java.security.sasl,java.sql,java.sql.rowset,\
+java.transaction.xa,java.xml,java.xml.crypto,jdk.crypto.ec,jdk.crypto.cryptoki,\
+jdk.httpserver,jdk.jfr,jdk.management,jdk.net,jdk.unsupported,jdk.zipfs"
+
 jpackage \
     --type app-image \
+    --add-modules "$MODULOS" \
     --name "$NOME" \
     --app-version "$VERSAO" \
     --input "$PALCO" \
