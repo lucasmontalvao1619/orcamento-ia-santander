@@ -12,6 +12,7 @@ import org.mockito.quality.Strictness;
 import com.lucdev.orcamentoia.config.ClienteDeChat;
 import com.lucdev.orcamentoia.model.Configuracao;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.retry.NonTransientAiException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -80,5 +81,38 @@ class AssistenteServiceTest {
     void trocaRespostaVaziaPelaMensagemPadrao() {
         assertThat(comRespostaDoModelo("   ").processarComando("oi")).contains("Confira o saldo");
         assertThat(comRespostaDoModelo(null).processarComando("oi")).contains("Confira o saldo");
+    }
+
+    // Chave valida com conta sem credito e o caso real que motivou isto: a IA
+    // recusa toda chamada. Morrer aqui seria pior do que atender pelo
+    // interpretador, que sabe executar o comando sozinho.
+    @Test
+    void quandoAIaRecusaOInterpretadorAtende() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        when(chatClient.prompt().user(anyString()).advisors(any(java.util.function.Consumer.class))
+                .tools(any(), any(), any()).call().content())
+                .thenThrow(new NonTransientAiException("429 insufficient_quota"));
+
+        ClienteDeChat cliente = mock(ClienteDeChat.class);
+        when(cliente.obter()).thenReturn(chatClient);
+
+        Configuracao comChave = new Configuracao();
+        comChave.setChaveOpenAi("sk-sem-credito");
+        ConfiguracaoService configuracao = mock(ConfiguracaoService.class);
+        when(configuracao.obter()).thenReturn(comChave);
+
+        InterpretadorDeComandos interpretador = mock(InterpretadorDeComandos.class);
+        when(interpretador.interpretar("gastei 60 no uber"))
+                .thenReturn(java.util.Optional.of("Transacao registrada com sucesso."));
+
+        AssistenteService servico = new AssistenteService(interpretador, configuracao, cliente,
+                mock(FinancasTools.class), mock(InvestimentoTools.class), mock(AppTools.class));
+
+        String resposta = servico.processarComando("gastei 60 no uber");
+
+        assertThat(resposta)
+                .contains("registrada com sucesso")
+                // O usuario precisa saber que a chave dele nao funcionou.
+                .contains("interpretador local");
     }
 }

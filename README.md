@@ -205,7 +205,35 @@ Exemplos que funcionam:
 
 ---
 
-## Voz e a chave da OpenAI
+## O assistente funciona sem chave e sem modelo baixado
+
+O comando escrito e atendido por um **interpretador proprio**, em Java, que
+entende as frases comuns por regras de texto — sem modelo de linguagem, sem
+download e sem custo. Ele chama exatamente as mesmas ferramentas que a IA
+chamaria, entao as regras de negocio e as respostas sao identicas nos dois
+caminhos.
+
+| Caminho | Quando | Tempo medido | Custo |
+|---------|--------|--------------|-------|
+| Interpretador proprio | padrao, sem chave | **33 a 113 ms** | zero |
+| IA (OpenAI) | com chave configurada | 2 a 4 s | credito da conta |
+
+Exemplos que o interpretador entende:
+
+```
+gastei 60 no uber                 recebi 500 de freela
+meu salario e 3000, dia 15        qual e o meu saldo
+quanto gastei com transporte      guarda 200 no porquinho
+listar transacoes                 corrige a transacao 3 para 45
+apaga a transacao 3               tira 100 do porquinho
+```
+
+Quando nao reconhece a frase, ele responde com esta lista em vez de um "nao
+entendi" seco. Com chave configurada, a IA assume e cobre frases livres — e **se
+a OpenAI recusar a chamada** (conta sem credito, por exemplo), o comando cai de
+volta no interpretador em vez de falhar, avisando o que aconteceu.
+
+## Voz: exige a chave da OpenAI
 
 O ditado por voz funciona de duas formas, e a segunda e opcional:
 
@@ -355,7 +383,7 @@ HTML, CSS e JavaScript puro · JUnit 5, Mockito e AssertJ
 ./mvnw test
 ```
 
-115 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
+133 testes cobrindo saldo, validacao, configuracao de salario, rendimento do
 porquinho, correcao e exclusao, as 15 ferramentas de Tool Calling, a transcricao
 de audio, o encerramento do modo aplicativo e o contrato HTTP de todos os
 endpoints — inclusive os status 400, 404,

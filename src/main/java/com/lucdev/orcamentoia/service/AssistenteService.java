@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.lucdev.orcamentoia.config.ClienteDeChat;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
 
@@ -68,6 +69,12 @@ public class AssistenteService {
             - apaga a transacao 3
             Para frases livres, informe sua chave da OpenAI em Configuracoes.""";
 
+    // Anexado a resposta quando a IA falhou e o interpretador salvou o comando:
+    // sem isto, o usuario acharia que a chave esta funcionando.
+    private static final String AVISO_SEM_IA =
+            "\n\n(A OpenAI recusou a chamada — provavelmente conta sem credito. "
+            + "Este comando foi atendido pelo interpretador local.)";
+
     public String processarComando(String textoUsuario) {
         // Sem chave da OpenAI nao ha modelo para interpretar a frase, mas o
         // aplicativo nao pode ficar mudo: o interpretador proprio entende os
@@ -77,14 +84,25 @@ public class AssistenteService {
             return interpretador.interpretar(textoUsuario).orElse(AJUDA_SEM_IA);
         }
 
-        String resposta = clienteDeChat.obter().prompt()
-                .user(textoUsuario)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, CONVERSA))
-                .tools(financasTools, investimentoTools, appTools)
-                .call()
-                .content();
+        try {
+            String resposta = clienteDeChat.obter().prompt()
+                    .user(textoUsuario)
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, CONVERSA))
+                    .tools(financasTools, investimentoTools, appTools)
+                    .call()
+                    .content();
 
-        return sanitizar(resposta);
+            return sanitizar(resposta);
+        } catch (NonTransientAiException e) {
+            // A chave existe mas o provedor recusou — tipicamente conta sem
+            // credito. Deixar o comando morrer aqui seria pior do que atender
+            // pelo interpretador: o usuario configurou a chave justamente para
+            // usar o assistente, e o app sabe executar isto sozinho.
+            log.warn("Provedor de IA recusou; usando o interpretador proprio.", e);
+            return interpretador.interpretar(textoUsuario)
+                    .map(r -> r + AVISO_SEM_IA)
+                    .orElseThrow(() -> e);
+        }
     }
 
     private String sanitizar(String resposta) {
