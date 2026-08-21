@@ -48,11 +48,14 @@ class EncerramentoAutomaticoTest {
         assertThat(EncerramentoAutomatico.deveEncerrar(agora, 0, INICIO)).isFalse();
     }
 
+    // Sem nenhum sinal, NUNCA encerrar. Uma pagina antiga em cache do navegador
+    // nao envia sinal: com a regra anterior, o app se matava sozinho depois de
+    // alguns minutos e todo comando virava "nao foi possivel falar com o
+    // servidor" — aconteceu em uso real.
     @Test
-    void desisteSeAJanelaNuncaAbrir() {
-        long agora = INICIO + Duration.ofMinutes(5).toMillis();
-
-        assertThat(EncerramentoAutomatico.deveEncerrar(agora, 0, INICIO)).isTrue();
+    void semSinalNenhumJamaisEncerra() {
+        assertThat(EncerramentoAutomatico.deveEncerrar(INICIO + Duration.ofMinutes(5).toMillis(), 0, INICIO)).isFalse();
+        assertThat(EncerramentoAutomatico.deveEncerrar(INICIO + Duration.ofHours(3).toMillis(), 0, INICIO)).isFalse();
     }
 
     @Test

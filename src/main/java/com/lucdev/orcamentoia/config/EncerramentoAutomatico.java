@@ -71,8 +71,15 @@ public class EncerramentoAutomatico {
     // sem esperar em relogio real nem derrubar a JVM do teste.
     static boolean deveEncerrar(long agora, long ultimoSinal, long inicio) {
         if (ultimoSinal == 0) {
-            // Nenhuma janela jamais se apresentou.
-            return agora - inicio > ESPERA_INICIAL.toMillis();
+            // Nenhuma janela se apresentou ate agora — e isso NAO e motivo para
+            // encerrar. Uma pagina antiga em cache do navegador nao envia sinal
+            // nenhum: o app se matava sozinho enquanto o usuario tentava usa-lo,
+            // e todo comando virava "nao foi possivel falar com o servidor".
+            //
+            // Encerrar so quando os sinais COMECARAM e depois pararam: ai a
+            // janela existiu e foi fechada, que e o caso que este recurso
+            // pretende cobrir.
+            return false;
         }
         return agora - ultimoSinal > TOLERANCIA.toMillis();
     }
