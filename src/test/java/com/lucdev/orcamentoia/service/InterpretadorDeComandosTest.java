@@ -300,4 +300,108 @@ class InterpretadorDeComandosTest {
 
         verify(financas).registrarTransacao(any(), any(), eq("alimentacao"), any());
     }
+
+    // --- frases de continuacao -----------------------------------------------
+
+    // O caso relatado em uso: "guarde 500" funcionava e "mais 300" nao. Para
+    // quem escreve, a segunda frase e um comando completo.
+    @Test
+    void maisValorRepeteAUltimaAcaoDeGuardar() {
+        when(investimentos.guardarNoPorquinho(any(), any())).thenReturn("guardado");
+
+        interpretador.interpretar("guarde 500 no porquinho");
+        assertThat(interpretador.interpretar("mais 300")).contains("guardado");
+
+        verify(investimentos).guardarNoPorquinho(any(), eq(new BigDecimal("500")));
+        verify(investimentos).guardarNoPorquinho(any(), eq(new BigDecimal("300")));
+    }
+
+    @Test
+    void soUmNumeroTambemContinua() {
+        when(financas.registrarTransacao(any(), any(), any(), any())).thenReturn("ok");
+
+        interpretador.interpretar("gastei 60 no uber");
+        assertThat(interpretador.interpretar("40")).contains("ok");
+
+        // Repete categoria e descricao: sao outros 40 da mesma coisa.
+        verify(financas).registrarTransacao(any(), eq(new BigDecimal("40")),
+                eq("transporte"), eq(TipoTransacao.DESPESA));
+    }
+
+    @Test
+    void continuacaoRespeitaRetirada() {
+        when(investimentos.retirarDoPorquinho(any(), any())).thenReturn("retirado");
+
+        interpretador.interpretar("tira 100 do porquinho");
+        assertThat(interpretador.interpretar("e mais 50")).contains("retirado");
+
+        verify(investimentos).retirarDoPorquinho(any(), eq(new BigDecimal("50")));
+    }
+
+    // Sem nada antes, "mais 300" nao tem o que repetir — e admitir isso e
+    // melhor do que adivinhar o que fazer com o dinheiro.
+    @Test
+    void continuacaoSemAcaoAnteriorNaoInventa() {
+        assertThat(interpretador.interpretar("mais 300")).isEmpty();
+        verifyNoInteractions(financas, investimentos);
+    }
+
+    // Frase com contexto proprio nao e continuacao: "mais 300 no mercado" diz o
+    // que e, e precisa virar um gasto de alimentacao, nao repetir o anterior.
+    @Test
+    void fraseComContextoProprioNaoViraContinuacao() {
+        when(investimentos.guardarNoPorquinho(any(), any())).thenReturn("guardado");
+        when(financas.registrarTransacao(any(), any(), any(), any())).thenReturn("gasto");
+
+        interpretador.interpretar("guarde 500 no porquinho");
+        assertThat(interpretador.interpretar("gastei mais 300 no mercado")).contains("gasto");
+
+        verify(financas).registrarTransacao(any(), eq(new BigDecimal("300")),
+                eq("alimentacao"), eq(TipoTransacao.DESPESA));
+    }
+
+    // "guarde 500" sem a palavra porquinho: era a forma mais natural de pedir,
+    // e o assistente nao entendia.
+    @Test
+    void oVerboDeGuardarBastaSemDizerPorquinho() {
+        when(investimentos.guardarNoPorquinho(any(), any())).thenReturn("guardado");
+
+        for (String frase : new String[]{"guarde 500", "guardar 200", "guardei 100",
+                "quero poupar 300", "investir 400"}) {
+            assertThat(interpretador.interpretar(frase)).as(frase).contains("guardado");
+        }
+    }
+
+    @Test
+    void oVerboDeRetirarBastaSemDizerPorquinho() {
+        when(investimentos.retirarDoPorquinho(any(), any())).thenReturn("retirado");
+
+        for (String frase : new String[]{"tira 100", "retira 50", "saca 200", "resgatar 300"}) {
+            assertThat(interpretador.interpretar(frase)).as(frase).contains("retirado");
+        }
+    }
+
+    // "guarde 500" virava a descricao "Guarde", que aparecia feio em toda a
+    // listagem de movimentos do porquinho.
+    @Test
+    void semMotivoDitoADescricaoEhNeutra() {
+        when(investimentos.guardarNoPorquinho(any(), any())).thenReturn("ok");
+        ArgumentCaptor<String> descricao = ArgumentCaptor.forClass(String.class);
+
+        interpretador.interpretar("guarde 500");
+
+        verify(investimentos).guardarNoPorquinho(descricao.capture(), any());
+        assertThat(descricao.getValue()).isEqualTo("Reserva");
+    }
+
+    @Test
+    void oMotivoDitoViraADescricao() {
+        when(investimentos.guardarNoPorquinho(any(), any())).thenReturn("ok");
+        ArgumentCaptor<String> descricao = ArgumentCaptor.forClass(String.class);
+
+        interpretador.interpretar("guarda 800 para a viagem");
+
+        verify(investimentos).guardarNoPorquinho(descricao.capture(), any());
+        assertThat(descricao.getValue()).isEqualToIgnoringCase("Viagem");
+    }
 }

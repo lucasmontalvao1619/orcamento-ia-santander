@@ -53,6 +53,19 @@ parece funcionar e falha em silencio: `gas` (moradia) casava dentro de
 `gastos`, e "gastos com farmacia" virava moradia. Palavras curtas colidem com
 maiores o tempo todo — `bar` em "barato", `moto` em "motorista".
 
+### Frases de continuacao
+
+O interpretador guarda a ultima acao para "mais 300" funcionar depois de
+"guarde 500" — que e um comando completo na cabeca de quem escreve. Frase com
+verbo ou categoria proprios NAO e continuacao: "gastei mais 300 no mercado"
+precisa virar um gasto de alimentacao, e nao repetir o anterior.
+
+### Verbo sozinho basta
+
+Nao exija a palavra do dominio junto do verbo. "guarde 500" nao entendia porque
+a regra pedia a palavra "porquinho" na frase — e essa e a forma mais natural de
+pedir. O mesmo vale para "tira 100".
+
 ### Ordem das regras importa
 
 Em `interpretar()`, as verificacoes vao do mais especifico para o mais generico.

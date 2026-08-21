@@ -135,6 +135,20 @@ public class InterpretadorDeComandos {
             A categoria sai do que voce escreve: uber vira transporte, mercado
             vira alimentacao, farmacia vira saude.""";
 
+    // O que o usuario mandou fazer por ultimo. Existe para frases de
+    // continuacao funcionarem: depois de "guarde 500", um "mais 300" e um
+    // comando completo na cabeca de quem escreve, mas sozinho nao diz o que
+    // fazer com 300. Sem isto o assistente responde "nao entendi" a uma frase
+    // que qualquer pessoa entenderia.
+    private enum Acao { GUARDAR, RETIRAR, DESPESA, RECEITA }
+
+    private record Ultima(Acao acao, String descricao, String categoria) {
+    }
+
+    // volatile porque a interface pode mandar comandos de threads diferentes.
+    // Uma unica pessoa usa o aplicativo, entao guardar a ultima acao basta.
+    private volatile Ultima ultima;
+
     private final FinancasTools financas;
     private final InvestimentoTools investimentos;
     private final AppTools app;
@@ -154,6 +168,13 @@ public class InterpretadorDeComandos {
             return Optional.empty();
         }
         String t = normalizar(comando);
+
+        // Continuacao: "mais 300", "e mais 50", "outros 200", ou so um numero.
+        // Repete a ultima acao com o valor novo.
+        Optional<String> continuacao = tentarContinuacao(t);
+        if (continuacao.isPresent()) {
+            return continuacao;
+        }
 
         // Sociais e ajuda vem primeiro: sao curtos e nao devem ser confundidos
         // com comando de dinheiro por conterem algum numero solto.
@@ -255,17 +276,26 @@ public class InterpretadorDeComandos {
         if (contem(t, "salario")) {
             return Optional.of(financas.consultarSalario());
         }
-        if (contem(t, "porquinho", "guardad", "poupanc", "reserva", "investiment")) {
+        // O verbo sozinho basta: "guarde 500" e um comando completo, e exigir a
+        // palavra "porquinho" fazia o assistente nao entender a forma mais
+        // natural de pedir.
+        if (contem(t, "porquinho", "guardad", "guarde", "guardar", "guardei", "guarda ",
+                "poupanc", "poupar", "poupe", "reserva", "investiment", "investir", "invista",
+                "tira ", "tirar", "tire ", "retira", "saca ", "sacar", "resgat")) {
             if (contem(t, "guard", "poupa", "investir", "separa", "reserva")) {
                 Optional<BigDecimal> valor = valorDe(t);
                 if (valor.isPresent()) {
-                    return Optional.of(investimentos.guardarNoPorquinho(descricaoDe(t, "porquinho"), valor.get()));
+                    String descricao = descricaoDoPorquinho(t, "Reserva");
+                    lembrar(Acao.GUARDAR, descricao, null);
+                    return Optional.of(investimentos.guardarNoPorquinho(descricao, valor.get()));
                 }
             }
             if (contem(t, "tira", "retira", "saca", "resgat")) {
                 Optional<BigDecimal> valor = valorDe(t);
                 if (valor.isPresent()) {
-                    return Optional.of(investimentos.retirarDoPorquinho(descricaoDe(t, "porquinho"), valor.get()));
+                    String descricao = descricaoDoPorquinho(t, "Retirada");
+                    lembrar(Acao.RETIRAR, descricao, null);
+                    return Optional.of(investimentos.retirarDoPorquinho(descricao, valor.get()));
                 }
             }
             if (contem(t, "movimento", "extrato", "lista")) {
@@ -304,12 +334,60 @@ public class InterpretadorDeComandos {
                 if (categoria == null) {
                     categoria = receita ? "extra" : "alimentacao";
                 }
+                String descricao = descricaoDe(t, null);
+                lembrar(receita ? Acao.RECEITA : Acao.DESPESA, descricao, categoria);
                 return Optional.of(financas.registrarTransacao(
-                        descricaoDe(t, null), valor.get(), categoria,
+                        descricao, valor.get(), categoria,
                         receita ? TipoTransacao.RECEITA : TipoTransacao.DESPESA));
             }
         }
         return Optional.empty();
+    }
+
+    // "mais 300" so faz sentido depois de outra coisa. So aceita frases curtas
+    // e sem verbo proprio: "mais 300 no mercado" tem contexto suficiente para
+    // seguir o caminho normal e virar um gasto novo.
+    private Optional<String> tentarContinuacao(String t) {
+        Ultima anterior = ultima;
+        if (anterior == null) {
+            return Optional.empty();
+        }
+        // Frase com verbo proprio ou categoria nao e continuacao: "gastei mais
+        // 300 no mercado" diz o que e, e precisa virar um gasto de alimentacao
+        // em vez de repetir o que veio antes.
+        boolean temContextoProprio = contem(t, "gastei", "paguei", "comprei", "recebi", "ganhei",
+                "guarda", "guarde", "guardar", "tira", "tirar", "retira", "salario", "porquinho",
+                "saldo", "transacao", "fixo", "conta")
+                || categoriaDe(t, false) != null
+                || categoriaDe(t, true) != null;
+
+        boolean pareceContinuacao = contem(t, "mais ", "e mais", "outros ", "outras ", "tambem ",
+                "adiciona mais", "coloca mais", "poe mais")
+                || t.trim().matches("^\\d+([.,]\\d{1,2})?$");
+
+        if (!pareceContinuacao || temContextoProprio || t.length() > 40) {
+            return Optional.empty();
+        }
+        Optional<BigDecimal> valor = valorDe(t);
+        if (valor.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(repetir(anterior, valor.get()));
+    }
+
+    private String repetir(Ultima anterior, BigDecimal valor) {
+        return switch (anterior.acao()) {
+            case GUARDAR -> investimentos.guardarNoPorquinho(anterior.descricao(), valor);
+            case RETIRAR -> investimentos.retirarDoPorquinho(anterior.descricao(), valor);
+            case DESPESA -> financas.registrarTransacao(anterior.descricao(), valor,
+                    anterior.categoria(), TipoTransacao.DESPESA);
+            case RECEITA -> financas.registrarTransacao(anterior.descricao(), valor,
+                    anterior.categoria(), TipoTransacao.RECEITA);
+        };
+    }
+
+    private void lembrar(Acao acao, String descricao, String categoria) {
+        ultima = new Ultima(acao, descricao, categoria);
     }
 
     // Minusculas e sem acento: "almoço" e "almoco" precisam casar igual.
@@ -414,6 +492,19 @@ public class InterpretadorDeComandos {
                 + "pago|pagar|recebo|receber|tenho|cadastra|cadastrar|adiciona|adicionar|registra|"
                 + "registrar|criar|sera|toda|semana)\\b", " ");
         return descricaoDe(limpo, null);
+    }
+
+    // O motivo de guardar, quando o usuario diz um ("para a viagem"). Sem
+    // motivo, um rotulo neutro: "guarde 500" virava a descricao "Guarde", que
+    // aparecia feio em toda a listagem de movimentos.
+    private static String descricaoDoPorquinho(String texto, String padrao) {
+        String limpo = texto.replaceAll(
+                "\\b(guarda|guarde|guardar|guardei|guardado|poupar|poupe|poupanca|investir|"
+                + "invista|investimento|separa|separar|tira|tire|tirar|retira|retirar|saca|sacar|"
+                + "resgata|resgatar|porquinho|quero|preciso|no|na|do|da|de|em|para|pra|o|a|um|uma)\\b",
+                " ");
+        String descricao = descricaoDe(limpo, null);
+        return descricao.isBlank() || descricao.equals("Lancamento") ? padrao : descricao;
     }
 
     private static BigDecimal paraNumero(String bruto) {

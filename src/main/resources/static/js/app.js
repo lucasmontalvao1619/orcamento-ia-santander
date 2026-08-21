@@ -821,10 +821,11 @@ el('abas').addEventListener('click', (e) => {
         b.classList.toggle('ativa', ativa);
         b.setAttribute('aria-selected', String(ativa));
     });
-    el('painel-transacoes').hidden = aba !== 'transacoes';
-    el('painel-investimentos').hidden = aba !== 'investimentos';
-    el('painel-fixos').hidden = aba !== 'fixos';
-    el('painel-resumo').hidden = aba !== 'resumo';
+    // Percorre os paineis existentes em vez de listar um por um: a aba de
+    // graficos ficou invisivel por eu ter esquecido a linha dela nesta lista.
+    document.querySelectorAll('[id^="painel-"]').forEach((painel) => {
+        painel.hidden = painel.id !== `painel-${aba}`;
+    });
 
     // Recarrega ao abrir a aba, e nao no carregamento da pagina: e assim que a
     // tabela fica sempre atual sem precisar de botao de atualizar.
