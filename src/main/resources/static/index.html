@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="author" content="Lucas Montalvão">
+    <meta name="description" content="Assistente financeiro pessoal com Spring Boot, Spring AI e Tool Calling.">
+    <title>Fast Finance Helper — Assistente Financeiro por Voz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0a0c10">
+    <!-- iOS ignora o manifest para o icone e o modo tela cheia; precisa destas. -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Orçamento IA">
+    <link rel="apple-touch-icon" href="/icones/icone-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icones/icone-192.png">
+    <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+
+<div id="boas-vindas" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="titulo-boas-vindas">
+    <div class="modal-caixa">
+        <div class="modal-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+                <path d="M3 7l2.5-4h13L21 7"/>
+                <path d="M12 12v4M10 14h4"/>
+            </svg>
+        </div>
+        <h2 id="titulo-boas-vindas">Bem-vindo ao Fast Finance Helper</h2>
+        <p>Para começar, informe quanto você recebe por mês — ou quanto tem disponível agora.
+           Esse valor entra como a receita inicial do seu orçamento e pode ser alterado
+           depois em <strong>Configurações</strong>.</p>
+        <form id="form-boas-vindas">
+            <label>
+                <span>Salário ou saldo inicial (R$)</span>
+                <input id="salario-inicial" type="number" step="0.01" min="0.01" required placeholder="4500,00">
+            </label>
+            <button type="submit" class="botao botao--bloco">Começar</button>
+            <p id="erro-boas-vindas" class="erro" hidden></p>
+        </form>
+        <button id="sem-salario" type="button" class="botao-texto">Não tenho salário fixo</button>
+        <p class="modal-nota">Renda variável, autônomo ou ainda sem renda? Comece com o
+           orçamento zerado e registre cada entrada de dinheiro conforme receber.</p>
+    </div>
+</div>
+
+<header class="topo">
+    <div class="topo-marca">
+        <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <path d="M12 19v3"/>
+            </svg>
+        </div>
+        <div class="topo-titulo">
+            <h1>Fast Finance Helper</h1>
+            <p>Assistente financeiro de voz <span class="assinatura-topo">· por <strong id="autor-topo">—</strong></span></p>
+        </div>
+    </div>
+    <div class="topo-acoes">
+        <div id="pilula-status" class="pilula pilula--neutra">
+            <span class="ponto"></span><span id="texto-status">Verificando…</span>
+        </div>
+        <button type="button" id="botao-config" class="icone-botao" aria-label="Configurações">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </button>
+    </div>
+</header>
+
+<div id="aviso" class="aviso" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 9v4M12 17h.01"/>
+        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+    </svg>
+    <div>
+        <strong>Assistente em modo local.</strong>
+        <span id="aviso-texto"></span>
+        Os comandos escritos funcionam normalmente e sem custo — experimente
+        <em>“gastei 60 no uber”</em>. Para <strong>voz</strong> e para frases mais livres,
+        informe sua chave da OpenAI em Configurações.
+    </div>
+</div>
+
+<main class="conteudo">
+
+    <section class="cartoes" aria-label="Resumo do orçamento">
+        <article class="cartao cartao--saldo">
+            <span class="cartao-rotulo">Saldo atual</span>
+            <strong id="valor-saldo" class="cartao-valor">R$ 0,00</strong>
+            <span id="legenda-saldo" class="cartao-legenda">Receitas menos despesas</span>
+            <!-- O porquinho e separado do saldo de proposito, mas some da vista
+                 se nao aparecer em lugar nenhum na tela principal. -->
+            <span id="saldo-investido" class="cartao-extra" hidden></span>
+        </article>
+        <article class="cartao cartao--receita">
+            <span class="cartao-rotulo">Receitas</span>
+            <strong id="valor-receitas" class="cartao-valor">R$ 0,00</strong>
+            <span id="legenda-receitas" class="cartao-legenda">Nenhum lançamento</span>
+        </article>
+        <article class="cartao cartao--despesa">
+            <span class="cartao-rotulo">Despesas</span>
+            <strong id="valor-despesas" class="cartao-valor">R$ 0,00</strong>
+            <span id="legenda-despesas" class="cartao-legenda">Nenhum lançamento</span>
+        </article>
+    </section>
+
+    <div class="colunas">
+
+        <section class="painel painel--assistente" aria-label="Assistente">
+            <div class="painel-cabecalho">
+                <h2>Assistente</h2>
+                <span class="etiqueta">Voz &amp; texto</span>
+            </div>
+
+            <div class="gravador">
+                <button id="botao-microfone" class="microfone" type="button" aria-label="Gravar comando de voz">
+                    <svg class="icone-microfone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <path d="M12 19v3"/>
+                    </svg>
+                    <svg class="icone-parar" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="7" y="7" width="10" height="10" rx="2"/>
+                    </svg>
+                </button>
+                <div class="gravador-info">
+                    <span id="gravador-estado" class="gravador-estado">Toque para falar</span>
+                    <span id="gravador-dica" class="gravador-dica">Ex.: “Gastei 50 reais com almoço na categoria alimentação”</span>
+                </div>
+            </div>
+
+            <form id="form-texto" class="linha-texto">
+                <input id="entrada-texto" type="text" autocomplete="off"
+                       placeholder="Ou digite um comando…" aria-label="Comando em texto">
+                <button type="submit" class="botao botao--primario" aria-label="Enviar comando">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </form>
+
+            <div class="sugestoes" id="sugestoes">
+                <button type="button" data-comando="Qual é o meu saldo atual?">Qual é o meu saldo?</button>
+                <button type="button" data-comando="Recebi 3000 reais de salário">Recebi meu salário</button>
+                <button type="button" data-comando="Quanto eu gastei com alimentação?">Gastos com alimentação</button>
+                <button type="button" data-comando="Liste minhas transações">Listar transações</button>
+            </div>
+
+            <div id="conversa" class="conversa" aria-live="polite">
+                <div class="conversa-vazia">
+                    <p>Nenhuma conversa ainda.</p>
+                    <span>Grave um áudio ou digite um comando para começar.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="painel" aria-label="Novo lançamento">
+            <div class="painel-cabecalho">
+                <h2>Novo lançamento</h2>
+                <span class="etiqueta">Manual</span>
+            </div>
+
+            <div class="seletor" id="seletor-tipo" role="group" aria-label="Tipo do lançamento">
+                <button type="button" class="ativo" data-tipo="DESPESA">Gastei</button>
+                <button type="button" data-tipo="RECEITA">Recebi</button>
+            </div>
+
+            <form id="form-transacao" class="formulario">
+                <label>
+                    <span id="rotulo-descricao">Com o quê</span>
+                    <input name="descricao" type="text" required placeholder="Almoço no restaurante">
+                </label>
+                <div class="formulario-par">
+                    <label>
+                        <span>Valor (R$)</span>
+                        <input name="valor" type="number" step="0.01" min="0.01" required placeholder="50,00">
+                    </label>
+                    <label>
+                        <span>Categoria</span>
+                        <select name="categoria" id="campo-categoria" required></select>
+                    </label>
+                </div>
+                <button type="submit" id="botao-lancar" class="botao botao--bloco">Registrar gasto</button>
+                <p id="erro-formulario" class="erro" hidden></p>
+            </form>
+        </section>
+
+    </div>
+
+    <section class="painel" aria-label="Histórico">
+        <div class="abas" id="abas" role="tablist">
+            <button type="button" class="ativa" data-aba="transacoes" role="tab" aria-selected="true">Transações</button>
+            <button type="button" data-aba="investimentos" role="tab" aria-selected="false">Investimentos</button>
+            <button type="button" data-aba="fixos" role="tab" aria-selected="false">Fixos</button>
+            <button type="button" data-aba="resumo" role="tab" aria-selected="false">Resumo</button>
+            <button type="button" data-aba="graficos" role="tab" aria-selected="false">Gráficos</button>
+        </div>
+
+        <div id="painel-transacoes" role="tabpanel">
+        <div class="painel-cabecalho">
+            <h2>Transações</h2>
+            <div class="filtros" id="filtros" role="group" aria-label="Filtrar por tipo">
+                <button type="button" class="ativo" data-filtro="TODOS">Todas</button>
+                <button type="button" data-filtro="RECEITA">Receitas</button>
+                <button type="button" data-filtro="DESPESA">Despesas</button>
+            </div>
+        </div>
+        <div class="tabela-area">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th scope="col">Descrição</th>
+                    <th scope="col">Categoria</th>
+                    <th scope="col">Data</th>
+                    <th scope="col" class="direita">Valor</th>
+                    <th scope="col"><span class="oculto">Ações</span></th>
+                </tr>
+                </thead>
+                <tbody id="corpo-tabela"></tbody>
+            </table>
+            <div id="tabela-vazia" class="vazio" hidden>
+                <p>Nenhuma transação registrada.</p>
+                <span>Use o assistente ou o formulário ao lado para criar a primeira.</span>
+            </div>
+        </div>
+        </div>
+
+        <div id="painel-fixos" role="tabpanel" hidden>
+        <div class="painel-cabecalho">
+            <h2>Ganhos e gastos fixos</h2>
+        </div>
+        <p class="config-texto" style="padding: 0 4px 14px;">
+            Contas que se repetem todo mês. O valor aqui é uma <strong>previsão</strong> — luz,
+            água e cartão mudam todo mês, então você lança o <strong>valor real</strong> quando a
+            conta chega. Deixe o valor em branco se não souber quanto vem.
+        </p>
+        <form id="form-fixo" class="formulario">
+            <div class="formulario-par">
+                <label>
+                    <span>O quê</span>
+                    <input name="descricao" id="fixo-descricao" required placeholder="Conta de luz">
+                </label>
+                <label>
+                    <span>Tipo</span>
+                    <select name="tipo" id="fixo-tipo" required>
+                        <option value="DESPESA">Gasto fixo</option>
+                        <option value="RECEITA">Ganho fixo</option>
+                    </select>
+                </label>
+            </div>
+            <div class="formulario-par">
+                <label>
+                    <span>Categoria</span>
+                    <select name="categoria" id="fixo-categoria" required></select>
+                </label>
+                <label>
+                    <span>Previsto (R$) — opcional</span>
+                    <input name="valorPrevisto" id="fixo-valor" type="number" step="0.01" min="0.01" placeholder="varia todo mês">
+                </label>
+                <label>
+                    <span>Dia</span>
+                    <input name="diaVencimento" id="fixo-dia" type="number" min="1" max="31" placeholder="10">
+                </label>
+            </div>
+            <button type="submit" class="botao botao--bloco">Cadastrar item fixo</button>
+            <p id="erro-fixo" class="erro" hidden></p>
+        </form>
+        <div class="painel-cabecalho" style="margin-top: 26px;">
+            <h2>Fechar o mês</h2>
+            <button type="button" id="botao-fechar-mes" class="botao botao--primario">Lançar tudo</button>
+        </div>
+        <p class="config-texto" style="padding: 0 4px 14px;">
+            Preencha o que <strong>realmente veio</strong> em cada conta e confirme de uma vez.
+            Deixe em branco para usar a previsão. O que já foi lançado neste mês aparece marcado e
+            não é lançado de novo.
+        </p>
+        <div id="fechar-mes" class="tabela-area"></div>
+
+        <div class="painel-cabecalho" style="margin-top: 26px;"><h2>Cadastrados</h2></div>
+        <div id="lista-fixos" class="tabela-area"></div>
+        </div>
+
+        <div id="painel-resumo" role="tabpanel" hidden>
+        <div class="painel-cabecalho">
+            <h2>Para onde o dinheiro está indo</h2>
+            <div class="filtros" id="filtro-resumo">
+                <button type="button" class="ativa" data-periodo="mes">Este mês</button>
+                <button type="button" data-periodo="tudo">Tudo</button>
+            </div>
+        </div>
+        <div id="tabela-resumo" class="tabela-area"></div>
+        </div>
+
+        <div id="painel-graficos" role="tabpanel" hidden>
+        <div class="painel-cabecalho">
+            <h2>Gastos ao longo dos meses</h2>
+            <div class="filtros" id="filtro-meses">
+                <button type="button" data-meses="6" class="ativa">6 meses</button>
+                <button type="button" data-meses="12">12 meses</button>
+            </div>
+        </div>
+        <div id="grafico-mensal" class="grafico-area"></div>
+
+        <div class="painel-cabecalho" style="margin-top: 26px;"><h2>Onde o dinheiro foi</h2></div>
+        <div id="grafico-categorias" class="grafico-area"></div>
+
+        <div class="painel-cabecalho" style="margin-top: 26px;"><h2>Indicadores</h2></div>
+        <div id="indicadores" class="indicadores"></div>
+        </div>
+
+        <div id="painel-investimentos" role="tabpanel" hidden>
+            <div class="porquinho">
+                <div class="porquinho-icone" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 10c0-3.3-3.1-6-7-6s-7 2.7-7 6c0 1.6.7 3 1.9 4.1V17a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-.6c.6.1 1.2.2 1.9.2s1.3-.1 1.9-.2v.6a1 1 0 0 0 1 1H17a1 1 0 0 0 1-1v-2.9c.6-.6 1-1.3 1-2.1z"/>
+                        <path d="M9 4.5 10 2M15.5 10h.01M3 11h1.5"/>
+                    </svg>
+                </div>
+                <div class="porquinho-info">
+                    <span class="cartao-rotulo">Total no porquinho</span>
+                    <strong id="valor-porquinho" class="cartao-valor">R$ 0,00</strong>
+                    <span id="legenda-porquinho" class="cartao-legenda">Separado do saldo do orçamento</span>
+                </div>
+                <div class="porquinho-rendimento">
+                    <div>
+                        <span class="cartao-rotulo">Depositado</span>
+                        <strong id="valor-depositado">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <span class="cartao-rotulo">Rendimento</span>
+                        <strong id="valor-rendimento" class="rendimento">+ R$ 0,00</strong>
+                    </div>
+                    <span id="taxa-cdi" class="taxa">100% do CDI</span>
+                </div>
+            </div>
+
+            <form id="form-investimento" class="formulario formulario--linha">
+                <label>
+                    <span>Descrição</span>
+                    <input name="descricao" type="text" required placeholder="Guardando para a viagem">
+                </label>
+                <label class="campo-curto">
+                    <span>Valor (R$)</span>
+                    <input name="valor" type="number" step="0.01" min="0.01" required placeholder="100,00">
+                </label>
+                <label class="campo-curto">
+                    <span>Movimento</span>
+                    <select name="tipo" required>
+                        <option value="APORTE">Guardar</option>
+                        <option value="RETIRADA">Retirar</option>
+                    </select>
+                </label>
+                <button type="submit" class="botao botao--primario botao--alinhado">Registrar</button>
+            </form>
+            <p id="erro-investimento" class="erro" hidden></p>
+
+            <div class="tabela-area">
+                <table class="tabela">
+                    <thead>
+                    <tr>
+                        <th scope="col">Descrição</th>
+                        <th scope="col">Movimento</th>
+                        <th scope="col">Data</th>
+                        <th scope="col" class="direita">Valor</th>
+                        <th scope="col"><span class="oculto">Ações</span></th>
+                    </tr>
+                    </thead>
+                    <tbody id="corpo-investimentos"></tbody>
+                </table>
+                <div id="investimentos-vazio" class="vazio" hidden>
+                    <p>Seu porquinho está vazio.</p>
+                    <span>Registre o primeiro valor guardado acima.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="rodape">
+    <div class="rodape-autor">
+        <span class="rodape-marca" id="autor-inicial">—</span>
+        <div>
+            <strong id="autor-nome">—</strong>
+            <span id="autor-descricao">Carregando…</span>
+        </div>
+    </div>
+    <div class="rodape-links">
+        <a id="autor-github" class="rede" href="#" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 8.84 21.5c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.94.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+        </a>
+        <a id="autor-linkedin" class="rede" href="#" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.76-2.05C20.5 8.65 21 11 21 14.1V21h-4v-6.1c0-1.45-.03-3.32-2.02-3.32-2.03 0-2.34 1.58-2.34 3.21V21H9z"/></svg>
+        </a>
+        <a id="autor-instagram" class="rede" href="#" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <span class="rodape-divisor" aria-hidden="true"></span>
+        <a id="autor-site" href="#" target="_blank" rel="noopener">Portfólio</a>
+        <a href="/swagger-ui.html" target="_blank" rel="noopener">API</a>
+    </div>
+</footer>
+
+<div id="notificacao" class="notificacao" role="status" aria-live="polite" hidden></div>
+
+<div id="modal-config" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="titulo-config">
+    <div class="modal-caixa">
+        <button type="button" id="fechar-config" class="modal-fechar" aria-label="Fechar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+        </button>
+        <h2 id="titulo-config">Configurações</h2>
+        <p>Alterar o salário atualiza o lançamento existente em vez de criar outro,
+           então o saldo não é somado duas vezes.</p>
+        <form id="form-salario">
+            <div class="formulario-par">
+                <label>
+                    <span>Salário mensal (R$)</span>
+                    <input name="salario" id="campo-salario" type="number" step="0.01" min="0.01" required placeholder="4500,00">
+                </label>
+                <label>
+                    <span>Cai todo dia</span>
+                    <input name="diaRecebimento" id="campo-dia" type="number" min="1" max="31" placeholder="15">
+                </label>
+            </div>
+            <button type="submit" class="botao botao--bloco">Salvar</button>
+            <p id="erro-salario" class="erro" hidden></p>
+        </form>
+
+        <hr class="divisor-config">
+
+        <h3 class="config-secao">Voz</h3>
+        <p class="config-texto"><strong>A chave da OpenAI é obrigatória para o assistente.</strong>
+           Sem ela você continua usando o aplicativo normalmente — lançamentos, saldo, categorias
+           e porquinho —, mas o assistente que entende linguagem natural e o ditado por voz
+           ficam indisponíveis.</p>
+        <p class="config-texto">A chave é sua, sai de <strong>platform.openai.com</strong>, exige
+           crédito na conta e <strong>consome esse crédito a cada uso</strong>. Ela fica guardada
+           somente nesta máquina e nunca é enviada de volta para a tela.</p>
+        <form id="form-chave-openai">
+            <label>
+                <span>Chave da OpenAI <span id="estado-chave" class="etiqueta-estado" hidden>configurada</span></span>
+                <input name="chave" id="campo-chave-openai" type="password" autocomplete="off"
+                       spellcheck="false" placeholder="sk-...">
+            </label>
+            <div class="formulario-par">
+                <button type="submit" class="botao botao--bloco">Salvar chave</button>
+                <button type="button" id="remover-chave" class="botao botao--bloco botao--secundario" hidden>Remover</button>
+            </div>
+            <p id="erro-chave" class="erro" hidden></p>
+        </form>
+
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

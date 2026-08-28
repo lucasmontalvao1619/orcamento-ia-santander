@@ -1,0 +1,37 @@
+# Roda a suite a cada push e a cada pull request.
+#
+# O workflow de executaveis so dispara em tag ou manualmente, entao um commit
+# que quebrasse os testes passava despercebido ate alguem gerar um executavel —
+# possivelmente ja com o defeito empacotado e distribuido.
+name: Testes
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      # A suite nao usa rede, chave de API nem modelo baixado: roda inteira
+      # numa maquina limpa.
+      - name: Rodar os testes
+        run: ./mvnw -B test
+
+      - name: Publicar o relatorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-de-testes
+          path: target/surefire-reports/
+          retention-days: 7

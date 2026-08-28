@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Encerra o Fast Finance Helper sem abrir Terminal.
+#
+# Existe porque o atalho de iniciar tambem nao abre janela nenhuma: sem este
+# aqui, a aplicacao ficaria rodando em segundo plano sem forma obvia de parar.
+
+RAIZ="$(cd "$(dirname "$0")/../../.." && pwd)"
+SCRIPT="$RAIZ/scripts/parar.sh"
+
+avisar() {
+    osascript -e "display notification \"$1\" with title \"Fast Finance Helper\"" > /dev/null 2>&1
+}
+
+if [ ! -f "$SCRIPT" ]; then
+    osascript -e 'display alert "Fast Finance Helper" message "Não encontrei scripts/parar.sh. Este atalho precisa ficar dentro da pasta do projeto." as critical' > /dev/null 2>&1
+    exit 1
+fi
+
+if ! curl -s -o /dev/null -m 2 http://localhost:8080/api/sobre 2>/dev/null; then
+    avisar "A aplicação não estava rodando."
+    exit 0
+fi
+
+"$SCRIPT" > /dev/null 2>&1
+avisar "Aplicação encerrada. Seus lançamentos foram preservados."

@@ -1,0 +1,236 @@
+# Gera os executaveis de duplo clique para Windows e macOS.
+#
+# O jpackage so consegue empacotar para o sistema em que roda, e nao existe
+# forma de produzir um .exe de Windows a partir de um Mac. Por isso o build
+# acontece aqui: o GitHub empresta uma maquina de cada sistema.
+#
+# Rodar: aba Actions > "Executaveis" > Run workflow. Um push de tag v* tambem
+# dispara, e nesse caso os arquivos sao anexados a Release.
+name: Executaveis
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  empacotar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sistema: windows-latest
+            nome: windows
+            icone: scripts/icone.ico
+          - sistema: macos-latest
+            nome: macos
+            icone: scripts/icone.icns
+          # Zorin e derivado do Ubuntu, e o Ubuntu do Debian: o mesmo .deb
+          # atende os tres. O app-image acompanha para quem usa outra familia.
+          - sistema: ubuntu-latest
+            nome: linux
+            icone: scripts/icone.png
+
+    runs-on: ${{ matrix.sistema }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # O jpackage vem junto com o JDK, entao nao ha nada extra para instalar.
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      # O jpackage monta o .deb chamando ferramentas do sistema; sem elas ele
+      # falha so na hora de empacotar, depois de todo o build.
+      - name: Preparar o empacotador do Debian
+        if: matrix.nome == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot binutils
+
+      - name: Rodar os testes
+        run: ./mvnw -B test
+
+      - name: Compilar o jar
+        run: ./mvnw -B clean package -DskipTests
+
+      # O jpackage copia tudo que estiver em --input para dentro do executavel.
+      # Sem uma pasta so com o jar, o target inteiro iria junto.
+      - name: Separar o jar
+        shell: bash
+        run: |
+          mkdir -p palco
+          cp target/*.jar palco/
+          ls palco/
+
+      - name: Empacotar com o Java embutido
+        shell: bash
+        run: |
+          JAR=$(ls palco/*.jar | head -1)
+          # A primeira <version> do pom e a do parent (Spring Boot). A do projeto vem
+          # depois do </parent> — sem isso o app sai carimbado com a versao do framework.
+          VERSAO=$(sed -n '/<\/parent>/,$p' pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+          jpackage \
+            --type app-image \
+            --name "Fast Finance Helper" \
+            --app-version "$VERSAO" \
+            --input palco \
+            --main-jar "$(basename "$JAR")" \
+            --icon "${{ matrix.icone }}" \
+            --java-options "-Dapp.empacotado=true" \
+            --java-options "-Dapp.abrir-navegador=true" \
+            --java-options "-Dapp.encerrar-ao-fechar=true" \
+            --dest saida
+
+      # Verificacao minima de que o empacotamento produziu algo utilizavel: sem
+      # isto, um jpackage que falhasse pela metade viraria um zip vazio que so
+      # daria erro na mao de quem baixou.
+      # Instalador nativo do Windows, alem da pasta portatil: instala em
+      # Arquivos de Programas, cria atalho no menu Iniciar e desinstala pelo
+      # painel do sistema. Depende do WiX, que ja vem na maquina do GitHub.
+      - name: Gerar o instalador do Windows
+        if: matrix.nome == 'windows'
+        shell: bash
+        run: |
+          JAR=$(ls palco/*.jar | head -1)
+          VERSAO=$(sed -n '/<\/parent>/,$p' pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+          jpackage \
+            --type msi \
+            --name "Fast Finance Helper" \
+            --app-version "$VERSAO" \
+            --input palco \
+            --main-jar "$(basename "$JAR")" \
+            --icon scripts/icone.ico \
+            --win-dir-chooser \
+            --win-menu \
+            --win-shortcut \
+            --win-per-user-install \
+            --description "Assistente financeiro de voz" \
+            --vendor "Lucas Montalvao" \
+            --java-options "-Dapp.empacotado=true" \
+            --java-options "-Dapp.abrir-navegador=true" \
+            --java-options "-Dapp.encerrar-ao-fechar=true" \
+            --dest saida
+          ls -la saida/
+
+      # Instalador nativo para a familia Debian, alem da pasta portatil.
+      - name: Gerar o .deb
+        if: matrix.nome == 'linux'
+        shell: bash
+        run: |
+          JAR=$(ls palco/*.jar | head -1)
+          VERSAO=$(sed -n '/<\/parent>/,$p' pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+          jpackage \
+            --type deb \
+            --name "fast-finance-helper" \
+            --app-version "$VERSAO" \
+            --input palco \
+            --main-jar "$(basename "$JAR")" \
+            --icon scripts/icone.png \
+            --linux-shortcut \
+            --linux-menu-group Office \
+            --description "Assistente financeiro de voz" \
+            --vendor "Lucas Montalvao" \
+            --java-options "-Dapp.empacotado=true" \
+            --java-options "-Dapp.abrir-navegador=true" \
+            --java-options "-Dapp.encerrar-ao-fechar=true" \
+            --dest saida
+          ls -la saida/
+
+      - name: Conferir o resultado
+        shell: bash
+        run: |
+          case "${{ matrix.nome }}" in
+            windows)
+              test -f "saida/Fast Finance Helper/Fast Finance Helper.exe" || { echo "exe nao foi gerado"; exit 1; }
+              ls saida/*.msi > /dev/null 2>&1 || { echo "instalador msi nao foi gerado"; exit 1; } ;;
+            macos)
+              test -d "saida/Fast Finance Helper.app" || { echo "app nao foi gerado"; exit 1; } ;;
+            linux)
+              test -f "saida/Fast Finance Helper/bin/Fast Finance Helper" || { echo "binario nao foi gerado"; exit 1; }
+              ls saida/*.deb > /dev/null 2>&1 || { echo "deb nao foi gerado"; exit 1; } ;;
+          esac
+          echo "empacotamento conferido"
+
+      # Conferir que o arquivo existe nao prova que ele ABRE. As falhas mais
+      # caras deste projeto — porta ocupada, o app se encerrando sozinho —
+      # passariam por qualquer verificacao de arquivo e so apareceriam na mao de
+      # quem baixou. Aqui o executavel e realmente iniciado, no sistema de
+      # verdade, e precisa responder.
+      - name: Rodar o executavel de verdade
+        shell: bash
+        run: |
+          case "${{ matrix.nome }}" in
+            windows) BIN="saida/Fast Finance Helper/Fast Finance Helper.exe" ;;
+            macos)   BIN="saida/Fast Finance Helper.app/Contents/MacOS/Fast Finance Helper" ;;
+            linux)   BIN="saida/Fast Finance Helper/bin/Fast Finance Helper" ;;
+          esac
+
+          # Sem navegador no runner: abrir um seria erro garantido.
+          "$BIN" -Dapp.abrir-navegador=false > saida-execucao.log 2>&1 &
+          APP_PID=$!
+
+          pronto=""
+          for i in $(seq 1 60); do
+            for porta in $(seq 8080 8085); do
+              if curl -s -m 2 "http://localhost:$porta/api/sobre" | grep -q "Fast Finance Helper"; then
+                pronto="$porta"; break 2
+              fi
+            done
+            sleep 2
+          done
+
+          if [ -z "$pronto" ]; then
+            echo "O executavel nao respondeu:"; tail -40 saida-execucao.log; kill $APP_PID 2>/dev/null; exit 1
+          fi
+          echo "Respondeu na porta $pronto"
+
+          # O assistente sem chave precisa funcionar pelo interpretador: e o
+          # caminho padrao de quem instala.
+          RESPOSTA=$(curl -s -m 30 -X POST "http://localhost:$pronto/api/assistente/texto" \
+            --data-urlencode "comando=gastei 60 no uber")
+          echo "$RESPOSTA"
+          echo "$RESPOSTA" | grep -q "transporte" || { echo "O interpretador nao respondeu como esperado"; kill $APP_PID 2>/dev/null; exit 1; }
+
+          kill $APP_PID 2>/dev/null || true
+          echo "Executavel verificado rodando."
+
+      # O artefato do GitHub nao preserva permissoes nem links simbolicos. No
+      # Linux isso quebra o runtime Java: a politica criptografica falha e a
+      # aplicacao nem sobe. Empacotar em tar antes preserva os dois.
+      - name: Empacotar o Linux em tar
+        if: matrix.nome == 'linux'
+        shell: bash
+        run: |
+          cd saida
+          tar czf "fast-finance-helper-portatil.tar.gz" "Fast Finance Helper"
+          rm -rf "Fast Finance Helper"
+          ls -la
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orcamento-ia-${{ matrix.nome }}
+          path: saida/
+          retention-days: 30
+
+      - name: Anexar a Release (somente em tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          cd saida
+          if [ "${{ matrix.nome }}" = "windows" ]; then
+            7z a "../orcamento-ia-windows.zip" "Fast Finance Helper"
+          else
+            # O -y preserva os links simbolicos do runtime Java dentro do .app;
+            # sem ele o pacote incha e o executavel pode nem abrir.
+            zip -r -y "../orcamento-ia-macos.zip" "Orcamento IA.app"
+          fi
+          cd ..
+          gh release upload "${GITHUB_REF_NAME}" "orcamento-ia-${{ matrix.nome }}.zip" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

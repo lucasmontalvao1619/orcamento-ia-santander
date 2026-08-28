@@ -1,0 +1,26 @@
+# Sobe a aplicacao num container. Nao ha mais servico de modelo local: a IA e da
+# OpenAI, acionada pela chave que o usuario informa na propria interface.
+#
+# Isso reduziu o pacote de ~6 GB para poucas centenas de MB e eliminou a
+# lentidao do modelo em CPU dentro do container.
+name: fast-finance-helper
+
+services:
+
+  app:
+    # O contexto e a raiz do projeto (uma pasta acima): e la que estao o pom.xml
+    # e o src que o Dockerfile copia.
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fast-finance-helper
+    ports:
+      - "8080:8080"
+    volumes:
+      # Os lancamentos ficam neste volume e sobrevivem ao restart. Como o volume
+      # nasce vazio, cada pessoa comeca com o orcamento zerado.
+      - dados-orcamento:/app/dados
+    restart: unless-stopped
+
+volumes:
+  dados-orcamento:

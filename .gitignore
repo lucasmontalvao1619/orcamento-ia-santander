@@ -1,0 +1,44 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+.idea/
+*.iws
+*.iml
+*.ipr
+
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+.vscode/
+
+.DS_Store
+
+# Variaveis de ambiente e segredos (nunca versionar chaves de API)
+.env
+.env.*
+!.env.example
+*.env
+application-local.properties
+application-local.yml
+application-secrets.properties
+secrets.properties
+*.pem
+*.p12
+*.key
+
+# Banco H2 em arquivo (dados locais do usuario)
+dados/
+
+# Pacote gerado por ./empacotar.sh
+dist/
+logs/
+
+# Atalhos do macOS: gerados por scripts/gerar-atalhos.sh a partir do icone e
+# dos scripts em scripts/atalhos. O repositorio guarda a receita, nao o produto.
+Iniciar Fast Finance Helper.app/
+Parar Fast Finance Helper.app/

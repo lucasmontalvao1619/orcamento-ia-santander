@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# Atalho clicavel do Fast Finance Helper.
+#
+# Um duplo clique aqui nao abre Terminal nenhum: a aplicacao sobe em segundo
+# plano e o navegador abre sozinho quando ela fica pronta. O acompanhamento e
+# feito por notificacao do macOS, e o que a inicializacao imprimiu fica em
+# logs/inicializacao.log para quando algo der errado.
+#
+# O .app fica na raiz do projeto, entao a raiz e tres pastas acima daqui:
+#   <raiz>/Iniciar Fast Finance Helper.app/Contents/MacOS/iniciar
+
+RAIZ="$(cd "$(dirname "$0")/../../.." && pwd)"
+SCRIPT="$RAIZ/scripts/iniciar.sh"
+LOG="$RAIZ/logs/inicializacao.log"
+# A aplicacao sobe na primeira porta livre a partir da 8080; esperar so na 8080
+# faria o atalho concluir que ela nunca subiu.
+PORTA_INICIAL=8080
+PORTAS_TENTADAS=20
+
+descobrir_porta() {
+    local p
+    for p in $(seq "$PORTA_INICIAL" $((PORTA_INICIAL + PORTAS_TENTADAS - 1))); do
+        if curl -s -o /dev/null -m 1 "http://localhost:$p/api/sobre" 2>/dev/null; then
+            echo "$p"; return 0
+        fi
+    done
+    return 1
+}
+
+avisar() {
+    osascript -e "display notification \"$1\" with title \"Fast Finance Helper\"" > /dev/null 2>&1
+}
+
+alerta() {
+    osascript -e "display alert \"Fast Finance Helper\" message \"$1\" as critical" > /dev/null 2>&1
+    exit 1
+}
+
+if [ ! -f "$SCRIPT" ]; then
+    alerta "Não encontrei scripts/iniciar.sh. Este atalho precisa ficar dentro da pasta do projeto."
+fi
+
+# O macOS bloqueia leitura de Desktop, Documentos e Downloads sem permissao
+# explicita, e a Desktop ainda pode estar sincronizada pelo iCloud. Dali a
+# inicializacao falha com 'Operation not permitted' — um erro que nao diz nada
+# a quem so queria abrir o aplicativo. Melhor detectar aqui e explicar.
+case "$RAIZ" in
+    "$HOME"/Desktop/*|"$HOME"/Documents/*|"$HOME"/Downloads/*|"$HOME"/Library/Mobile\ Documents/*)
+        alerta "O projeto está numa pasta protegida pelo macOS (Desktop, Documentos, Downloads ou iCloud). Mova a pasta do projeto para outro lugar — por exemplo ~/Projetos — e clique de novo."
+        ;;
+esac
+
+# Ja esta no ar: so traz o navegador para frente, sem subir uma segunda copia.
+if PORTA=$(descobrir_porta); then
+    open "http://localhost:$PORTA"
+    exit 0
+fi
+
+mkdir -p "$RAIZ/logs"
+avisar "Iniciando… o navegador abre sozinho quando estiver pronto."
+
+# nohup + & solta o processo deste atalho: a aplicacao continua rodando depois
+# que o clique termina, sem janela nenhuma presa a ela.
+nohup "$SCRIPT" > "$LOG" 2>&1 &
+
+# Espera a aplicacao responder. Sem isto, uma falha (porta ocupada, Java
+# ausente, build quebrado) seria silenciosa: o usuario clicaria e nada
+# aconteceria, sem nenhuma pista do motivo.
+i=0
+until PORTA=$(descobrir_porta); do
+    i=$((i + 1))
+    if [ "$i" -gt 150 ]; then
+        alerta "A aplicação não subiu em 5 minutos. O que aconteceu está em logs/inicializacao.log, dentro da pasta do projeto."
+    fi
+    sleep 2
+done
+
+# Quem abre o navegador e o proprio scripts/iniciar.sh, que ja faz isso ao
+# terminar; aqui so confirmamos que deu certo.
+avisar "Pronto. Aplicação rodando em localhost:$PORTA."
